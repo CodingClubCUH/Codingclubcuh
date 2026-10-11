@@ -71,14 +71,14 @@ export default function ObjectivesSection() {
               <Link
                 key={i}
                 href={obj.href}
-                className="group relative p-7 rounded-3xl border border-border/80 bg-card/80 backdrop-blur-xl hover:border-primary/50 transition-all duration-300 hover:-translate-y-1.5 shadow-lg hover:shadow-primary/10 flex flex-col justify-between"
+                className="glass-card glass-card-hover group relative p-7 rounded-3xl flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-6">
-                    <div className={`size-12 rounded-2xl border flex items-center justify-center transition-transform group-hover:scale-110 ${obj.colorClass}`}>
+                    <div className={`size-12 rounded-2xl border flex items-center justify-center transition-transform group-hover:scale-110 shadow-xs ${obj.colorClass}`}>
                       <Icon className="size-6" />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/60 group-hover:border-primary/40 group-hover:text-primary transition-colors">
+                    <span className="glass-pill text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full text-muted-foreground group-hover:border-primary/40 group-hover:text-primary transition-colors">
                       {obj.tag}
                     </span>
                   </div>

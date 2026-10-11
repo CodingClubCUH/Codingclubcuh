@@ -20,11 +20,11 @@ export default function AboutSection() {
             </p>
 
             <div className="grid sm:grid-cols-2 gap-4">
-              <div className="p-5 rounded-3xl border border-border/80 bg-card/80 backdrop-blur-xl hover:border-primary/40 transition-all shadow-sm">
-                <div className="size-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+              <div className="glass-card glass-card-hover p-5 rounded-3xl group">
+                <div className="size-11 rounded-2xl bg-primary/15 border border-primary/25 text-primary flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-xs">
                   <Target className="size-5" />
                 </div>
-                <h3 className="font-bold text-foreground text-base mb-1.5">
+                <h3 className="font-bold text-foreground text-base mb-1.5 group-hover:text-primary transition-colors">
                   Core Mission
                 </h3>
                 <p className="text-muted-foreground text-xs leading-relaxed">
@@ -32,11 +32,11 @@ export default function AboutSection() {
                 </p>
               </div>
 
-              <div className="p-5 rounded-3xl border border-border/80 bg-card/80 backdrop-blur-xl hover:border-primary/40 transition-all shadow-sm">
-                <div className="size-11 rounded-2xl bg-violet-500/10 text-violet-400 flex items-center justify-center mb-4">
+              <div className="glass-card glass-card-hover p-5 rounded-3xl group">
+                <div className="size-11 rounded-2xl bg-violet-500/15 border border-violet-500/25 text-violet-400 flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-xs">
                   <Users className="size-5" />
                 </div>
-                <h3 className="font-bold text-foreground text-base mb-1.5">
+                <h3 className="font-bold text-foreground text-base mb-1.5 group-hover:text-violet-400 transition-colors">
                   Peer-to-Peer Learning
                 </h3>
                 <p className="text-muted-foreground text-xs leading-relaxed">
@@ -44,11 +44,11 @@ export default function AboutSection() {
                 </p>
               </div>
 
-              <div className="p-5 rounded-3xl border border-border/80 bg-card/80 backdrop-blur-xl hover:border-primary/40 transition-all shadow-sm">
-                <div className="size-11 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-4">
+              <div className="glass-card glass-card-hover p-5 rounded-3xl group">
+                <div className="size-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-xs">
                   <Shield className="size-5" />
                 </div>
-                <h3 className="font-bold text-foreground text-base mb-1.5">
+                <h3 className="font-bold text-foreground text-base mb-1.5 group-hover:text-emerald-400 transition-colors">
                   Verified Credentials
                 </h3>
                 <p className="text-muted-foreground text-xs leading-relaxed">
@@ -56,11 +56,11 @@ export default function AboutSection() {
                 </p>
               </div>
 
-              <div className="p-5 rounded-3xl border border-border/80 bg-card/80 backdrop-blur-xl hover:border-primary/40 transition-all shadow-sm">
-                <div className="size-11 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-4">
+              <div className="glass-card glass-card-hover p-5 rounded-3xl group">
+                <div className="size-11 rounded-2xl bg-amber-500/15 border border-amber-500/25 text-amber-400 flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-xs">
                   <Rocket className="size-5" />
                 </div>
-                <h3 className="font-bold text-foreground text-base mb-1.5">
+                <h3 className="font-bold text-foreground text-base mb-1.5 group-hover:text-amber-400 transition-colors">
                   Hackathons & Sprints
                 </h3>
                 <p className="text-muted-foreground text-xs leading-relaxed">

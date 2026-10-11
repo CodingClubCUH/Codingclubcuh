@@ -14,10 +14,6 @@ import {
   VolumeX,
   ChevronDown,
   Loader2,
-  Settings,
-  Key,
-  ExternalLink,
-  Check,
   Mic,
   MicOff,
   Maximize2,
@@ -42,7 +38,6 @@ interface Message {
 type PersonaType = "mentor" | "guide" | "coach";
 
 const STORAGE_KEY = "cccuh_chat_history";
-const GEMINI_KEY_STORAGE = "cccuh_gemini_api_key";
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -53,10 +48,6 @@ export default function Chatbot() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [persona, setPersona] = useState<PersonaType>("mentor");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [showSettings, setShowSettings] = useState(false);
-  const [geminiApiKey, setGeminiApiKey] = useState("");
-  const [tempApiKeyInput, setTempApiKeyInput] = useState("");
-  const [keySavedFeedback, setKeySavedFeedback] = useState(false);
   const [currentModelName, setCurrentModelName] = useState<string | null>("Gemini AI");
 
   // Voice speech-to-text state
@@ -107,17 +98,9 @@ export default function Chatbot() {
     }
   };
 
-  // Load chat history & Gemini Key
+  // Load chat history
   useEffect(() => {
     try {
-      const defaultKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-      const savedKey = localStorage.getItem(GEMINI_KEY_STORAGE) || defaultKey;
-      if (savedKey) {
-        setGeminiApiKey(savedKey);
-        setTempApiKeyInput(savedKey);
-        setCurrentModelName("Gemini AI");
-      }
-
       const savedChat = sessionStorage.getItem(STORAGE_KEY);
       if (savedChat) {
         const parsed = JSON.parse(savedChat);
@@ -136,13 +119,13 @@ export default function Chatbot() {
       role: "assistant",
       content: `👋 **Welcome to Coding Club CUH!**
 
-I am your official AI Club Assistant and Coding Mentor. Ask me anything about our **workshops, events, certificate verification, courses, roadmaps, or coding questions**!`,
+I am powered by **Google Gemini AI**. You can ask me **anything** — whether you need help with **programming & debugging in any language**, project ideas, career roadmaps, or information about our **workshops, events, courses, and certificates**!`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       suggestedFollowUps: [
+        "Explain binary search with Python code",
         "How do I verify my certificate?",
-        "What courses and workshops are available?",
         "Give me a Web Development roadmap",
-        "Upcoming events and hackathons",
+        "What workshops and events are coming up?",
       ],
     };
     setMessages([welcomeMsg]);
@@ -251,24 +234,6 @@ I am your official AI Club Assistant and Coding Mentor. Ask me anything about ou
     }
   };
 
-  const handleSaveApiKey = () => {
-    const trimmed = tempApiKeyInput.trim();
-    if (trimmed) {
-      localStorage.setItem(GEMINI_KEY_STORAGE, trimmed);
-      setGeminiApiKey(trimmed);
-      setCurrentModelName("Gemini AI");
-    } else {
-      localStorage.removeItem(GEMINI_KEY_STORAGE);
-      setGeminiApiKey("");
-      setCurrentModelName(null);
-    }
-    setKeySavedFeedback(true);
-    setTimeout(() => {
-      setKeySavedFeedback(false);
-      setShowSettings(false);
-    }, 1200);
-  };
-
   const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend || input).trim();
     if (!text || isLoading) return;
@@ -302,7 +267,6 @@ I am your official AI Club Assistant and Coding Mentor. Ask me anything about ou
             role: m.role,
             content: m.content,
           })),
-          apiKey: geminiApiKey || undefined,
           persona,
         }),
       });
@@ -460,17 +424,6 @@ I am your official AI Club Assistant and Coding Mentor. Ask me anything about ou
                 >
                   <Download className="size-4" />
                 </button>
-                {/* Settings */}
-                <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  title="AI Settings (Google Gemini Key)"
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    showSettings ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                  }`}
-                  aria-label="Settings"
-                >
-                  <Settings className="size-4" />
-                </button>
                 {/* Sound */}
                 <button
                   onClick={() => setSoundEnabled(!soundEnabled)}
@@ -546,85 +499,6 @@ I am your official AI Club Assistant and Coding Mentor. Ask me anything about ou
                 </button>
               </div>
             </div>
-
-            {/* AI Settings Modal Overlay */}
-            <AnimatePresence>
-              {showSettings && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="border-b border-border bg-muted/40 p-3.5 space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                      <Key className="size-3.5 text-primary" />
-                      <span>Google Gemini AI Configuration</span>
-                    </div>
-                    <button
-                      onClick={() => setShowSettings(false)}
-                      className="text-muted-foreground hover:text-foreground p-0.5"
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  </div>
-
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Google Gemini is automatically connected via your server key. You can also paste an override key below.
-                  </p>
-
-                  <div className="space-y-2">
-                    <input
-                      type="password"
-                      value={tempApiKeyInput}
-                      onChange={(e) => setTempApiKeyInput(e.target.value)}
-                      placeholder="AIzaSy..."
-                      className="w-full bg-background text-foreground text-xs rounded-lg px-3 py-2 border border-border focus:outline-none focus:ring-1 focus:ring-primary font-mono"
-                    />
-
-                    <div className="flex items-center justify-between gap-2">
-                      <a
-                        href="https://aistudio.google.com/app/apikey"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"
-                      >
-                        <span>Google AI Studio Key</span>
-                        <ExternalLink className="size-3" />
-                      </a>
-
-                      <div className="flex items-center gap-2">
-                        {geminiApiKey && (
-                          <button
-                            onClick={() => {
-                              setTempApiKeyInput("");
-                              localStorage.removeItem(GEMINI_KEY_STORAGE);
-                              setGeminiApiKey("");
-                            }}
-                            className="text-[11px] text-red-500 hover:underline"
-                          >
-                            Reset
-                          </button>
-                        )}
-                        <Button
-                          size="sm"
-                          onClick={handleSaveApiKey}
-                          className="h-7 text-xs px-3"
-                        >
-                          {keySavedFeedback ? (
-                            <span className="flex items-center gap-1 text-emerald-400">
-                              <Check className="size-3" /> Saved!
-                            </span>
-                          ) : (
-                            "Save Key"
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             {/* Messages Body */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm scroll-smooth">

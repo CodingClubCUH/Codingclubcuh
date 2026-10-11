@@ -96,14 +96,14 @@ export default function FaqClient({ items }: { items: ObjectiveItem[] }) {
                 <button
                   key={item.id || index}
                   onClick={() => setActiveItemTitle(item.title)}
-                  className={`w-full text-left group relative rounded-2xl border p-4 transition-all duration-300 cursor-pointer ${
+                  className={`w-full text-left group relative rounded-2xl p-4 transition-all duration-300 cursor-pointer ${
                     isActive
-                      ? "border-primary/40 bg-primary/5 shadow-md shadow-primary/5"
-                      : "border-border bg-card/60 hover:border-primary/25 hover:bg-card"
+                      ? "glass-card border-primary/50 bg-primary/10 shadow-lg shadow-primary/10"
+                      : "glass-card border-white/10 hover:border-primary/30 hover:bg-card/80"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${iconColor}`}>
+                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-xs ${iconColor}`}>
                       <Icon className="size-4" />
                     </div>
                     <div className="flex-1">
@@ -137,8 +137,8 @@ export default function FaqClient({ items }: { items: ObjectiveItem[] }) {
 
           {/* Right: animated preview panel */}
           <div className="sticky top-24">
-            <div className="relative flex overflow-hidden rounded-3xl border border-border bg-card p-2 shadow-xl shadow-primary/5">
-              <div className="aspect-[4/3] bg-muted/40 relative w-full rounded-2xl overflow-hidden flex items-center justify-center">
+            <div className="glass-panel relative flex overflow-hidden rounded-3xl p-2.5 shadow-2xl shadow-primary/10 border border-white/20 dark:border-white/10 ring-1 ring-primary/20">
+              <div className="aspect-[4/3] bg-muted/30 relative w-full rounded-2xl overflow-hidden flex items-center justify-center">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`${activeItemTitle}-preview`}

@@ -34,10 +34,10 @@ export default async function ProjectsSection() {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="group relative bg-card border border-border rounded-3xl overflow-hidden hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/8 transition-all duration-500"
+              className="glass-card glass-card-hover group relative rounded-3xl overflow-hidden"
             >
               {/* Screenshot */}
-              <div className="aspect-[16/9] w-full bg-muted relative overflow-hidden">
+              <div className="aspect-[16/9] w-full bg-muted/40 relative overflow-hidden">
                 {project.screenshot && typeof project.screenshot === 'object' && project.screenshot.url && (
                   <Image 
                     src={project.screenshot.url} 
@@ -47,7 +47,7 @@ export default async function ProjectsSection() {
                   />
                 )}
                 {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent" />
                 
                 {/* Floating action links on hover */}
                 <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
@@ -55,7 +55,7 @@ export default async function ProjectsSection() {
                     <Link
                       href={project.github}
                       target="_blank"
-                      className="size-9 rounded-full bg-card/90 backdrop-blur-sm border border-border flex items-center justify-center text-foreground hover:text-primary hover:border-primary/50 transition-all shadow-sm"
+                      className="glass-pill size-9 rounded-full flex items-center justify-center text-foreground hover:text-primary hover:border-primary/50 transition-all shadow-sm"
                     >
                       <Github className="w-4 h-4" />
                     </Link>
@@ -64,7 +64,7 @@ export default async function ProjectsSection() {
                     <Link
                       href={project.liveDemo}
                       target="_blank"
-                      className="size-9 rounded-full bg-primary/90 backdrop-blur-sm border border-primary flex items-center justify-center text-primary-foreground hover:opacity-90 transition-all shadow-sm"
+                      className="glass-pill size-9 rounded-full bg-primary/80 text-primary-foreground border-primary/40 flex items-center justify-center hover:opacity-90 transition-all shadow-sm"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Link>

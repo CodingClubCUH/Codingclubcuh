@@ -144,16 +144,68 @@
   background-clip: text;
 }
 
-/* Glass card effect */
+/* Glassmorphism Design System */
 .glass-card {
-  background: oklch(1 0 0 / 60%);
-  backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid oklch(0.9 0.01 265 / 80%);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .dark .glass-card {
-  background: rgba(12, 12, 16, 0.75);
+  background: rgba(14, 17, 26, 0.65);
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.5), inset 0 1px 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Glass card interactive hover */
+.glass-card-hover {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card-hover:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 20px 40px -12px rgba(99, 102, 241, 0.2), inset 0 1px 2px 0 rgba(255, 255, 255, 0.4);
+}
+.dark .glass-card-hover:hover {
+  background: rgba(20, 24, 38, 0.75);
+  border-color: rgba(129, 140, 248, 0.4);
+  box-shadow: 0 20px 40px -12px rgba(99, 102, 241, 0.28), inset 0 1px 2px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* Glass Pill / Badge */
+.glass-pill {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.8);
+}
+.dark .glass-pill {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.3), inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Glass Panel / Container */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.08), inset 0 1px 2px 0 rgba(255, 255, 255, 0.9);
+}
+.dark .glass-panel {
+  background: rgba(10, 12, 20, 0.6);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.6), inset 0 1px 2px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Glow effect on hover */

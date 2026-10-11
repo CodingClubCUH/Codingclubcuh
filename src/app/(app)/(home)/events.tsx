@@ -132,7 +132,7 @@ export default async function EventsSection() {
             return (
               <div
                 key={event.id}
-                className={`group relative bg-card border border-border rounded-3xl overflow-hidden transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 flex flex-col${isFeature ? ' lg:col-span-1' : ''}`}
+                className={`glass-card glass-card-hover group relative rounded-3xl overflow-hidden flex flex-col${isFeature ? ' lg:col-span-1' : ''}`}
               >
                 {/* Cover image */}
                 <div className={`w-full overflow-hidden relative ${
@@ -151,22 +151,22 @@ export default async function EventsSection() {
                     />
                   )}
                   {/* Gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent" />
 
                   {/* Registration badge */}
                   {effectiveStatus === 'upcoming' && event.isRegistrationOpen === false ? (
-                    <div className="absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold rounded-full bg-rose-500 text-white shadow-sm backdrop-blur-sm uppercase tracking-wider">
+                    <div className="glass-pill absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold rounded-full bg-rose-500/85 text-white shadow-sm uppercase tracking-wider">
                       Reg. Closed
                     </div>
                   ) : effectiveStatus === 'upcoming' && event.registrationLink && event.isRegistrationOpen !== false ? (
-                    <div className="absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold rounded-full bg-emerald-500 text-white shadow-sm backdrop-blur-sm flex items-center gap-1.5 uppercase tracking-wider">
+                    <div className="glass-pill absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold rounded-full bg-emerald-500/85 text-white shadow-sm flex items-center gap-1.5 uppercase tracking-wider">
                       <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                       Register Open
                     </div>
                   ) : null}
 
                   {/* Status badge */}
-                  <div className={`absolute top-3 right-3 px-3 py-1 text-[10px] font-bold rounded-full border shadow-sm flex items-center gap-1.5 ${sConfig.badge}`}>
+                  <div className={`glass-pill absolute top-3 right-3 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm flex items-center gap-1.5 ${sConfig.badge}`}>
                     <span className={`size-1.5 rounded-full ${sConfig.dot}`} />
                     {sConfig.label}
                   </div>

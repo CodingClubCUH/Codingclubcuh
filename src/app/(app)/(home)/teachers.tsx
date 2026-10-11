@@ -99,23 +99,23 @@ export default async function TeachersSection() {
               return (
                 <div
                   key={instructor.id}
-                  className="bg-card border-border rounded-2xl p-6 flex flex-col items-center text-center shadow-sm hover:shadow-lg transition-all group glass-card glow-hover hover:border-primary/30"
+                  className="glass-card glass-card-hover rounded-3xl p-6 flex flex-col items-center text-center group"
                 >
-                  <div className="w-24 h-24 mb-4 rounded-full overflow-hidden bg-muted flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-primary/40">
+                  <div className="w-24 h-24 mb-4 rounded-2xl overflow-hidden bg-muted flex items-center justify-center transition-all ring-2 ring-white/10 group-hover:ring-primary/40 shadow-sm">
                     {photoUrl ? (
                       <Image
                         src={photoUrl}
                         alt={instructor.name}
                         width={96}
                         height={96}
-                        className="object-cover w-full h-full"
+                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       <User className="w-12 h-12 text-muted-foreground" />
                     )}
                   </div>
 
-                  <h3 className="font-semibold text-lg text-foreground">{instructor.name}</h3>
+                  <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">{instructor.name}</h3>
                   <p className="text-sm font-medium text-gradient mb-1">
                     {instructor.position || "Club Instructor"}
                   </p>
@@ -130,7 +130,7 @@ export default async function TeachersSection() {
                       {subjects.map((sub, i) => (
                         <span
                           key={i}
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+                          className="glass-pill inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium text-primary"
                         >
                           <BookOpen className="w-3 h-3" />
                           {sub}
@@ -139,7 +139,7 @@ export default async function TeachersSection() {
                     </div>
                   ) : (
                     <div className="mb-4">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                      <span className="glass-pill inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium text-primary">
                         <GraduationCap className="w-3 h-3" />
                         Course Instructor
                       </span>

@@ -37,7 +37,7 @@ export default function HeroSection() {
           {/* Announcement pill */}
           <Link
             href="/events"
-            className="group mx-auto flex w-fit items-center gap-3 rounded-full border border-border bg-card/80 backdrop-blur-sm p-1 pl-4 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 mb-8"
+            className="glass-pill group mx-auto flex w-fit items-center gap-3 rounded-full p-1 pl-4 hover:border-primary/50 transition-all duration-300 mb-8 shadow-md hover:shadow-primary/10 hover:scale-[1.02]"
           >
             <span className="relative flex size-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60" />
@@ -46,8 +46,8 @@ export default function HeroSection() {
             <span className="text-foreground text-sm font-medium">
               See Upcoming Events & Hackathons
             </span>
-            <span className="block h-4 w-px bg-border" />
-            <div className="bg-primary/10 group-hover:bg-primary/20 size-7 overflow-hidden rounded-full transition-colors duration-300 flex items-center justify-center">
+            <span className="block h-4 w-px bg-border/60" />
+            <div className="bg-primary/15 group-hover:bg-primary/25 size-7 overflow-hidden rounded-full transition-colors duration-300 flex items-center justify-center">
               <ArrowRight className="size-3.5 text-primary" />
             </div>
           </Link>
@@ -77,7 +77,7 @@ export default function HeroSection() {
             <Button
               asChild
               size="lg"
-              className="rounded-full px-8 h-12 text-base font-semibold w-full sm:w-auto gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
+              className="rounded-full px-8 h-12 text-base font-semibold w-full sm:w-auto gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02]"
             >
               <Link href="/auth/signup">
                 <UserPlus className="w-5 h-5" />
@@ -89,7 +89,7 @@ export default function HeroSection() {
               asChild
               size="lg"
               variant="outline"
-              className="rounded-full px-8 h-12 text-base font-semibold w-full sm:w-auto gap-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all"
+              className="glass-pill rounded-full px-8 h-12 text-base font-semibold w-full sm:w-auto gap-2 hover:border-primary/50 hover:bg-primary/10 transition-all hover:scale-[1.02]"
             >
               <Link href="/events">
                 <CalendarDays className="w-5 h-5" />
@@ -102,7 +102,7 @@ export default function HeroSection() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
             <button
               onClick={handleOpenAi}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-card/80 hover:bg-card hover:border-primary/50 backdrop-blur-md border border-border shadow-xs transition-all cursor-pointer group"
+              className="glass-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full hover:border-indigo-400/50 hover:scale-105 transition-all cursor-pointer group"
               title="Launch AI Coding Assistant"
             >
               <Sparkles className="size-3.5 text-indigo-400 group-hover:rotate-12 transition-transform" />
@@ -114,7 +114,7 @@ export default function HeroSection() {
 
             <Link
               href="/courses"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-card/80 hover:bg-card hover:border-emerald-500/50 backdrop-blur-md border border-border shadow-xs transition-all text-foreground"
+              className="glass-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full hover:border-emerald-500/50 hover:scale-105 transition-all text-foreground"
             >
               <Terminal className="size-3.5 text-emerald-400" />
               <span className="font-medium">Peer-Led Bootcamps</span>
@@ -122,7 +122,7 @@ export default function HeroSection() {
 
             <Link
               href="/verify"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-card/80 hover:bg-card hover:border-blue-500/50 backdrop-blur-md border border-border shadow-xs transition-all text-foreground"
+              className="glass-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full hover:border-blue-500/50 hover:scale-105 transition-all text-foreground"
             >
               <Code2 className="size-3.5 text-blue-400" />
               <span className="font-medium">Instant Certificate Verification</span>
@@ -136,7 +136,7 @@ export default function HeroSection() {
             aria-hidden
             className="bg-gradient-to-b to-background absolute inset-0 z-10 from-transparent from-35%"
           />
-          <div className="relative mx-auto max-w-5xl overflow-hidden rounded-2xl border border-border bg-card p-2 shadow-2xl shadow-primary/10 ring-1 ring-border aspect-15/8 glow-hover">
+          <div className="glass-panel relative mx-auto max-w-5xl overflow-hidden rounded-3xl p-2.5 shadow-2xl shadow-primary/15 aspect-15/8 glow-hover border border-white/20 dark:border-white/10 ring-1 ring-primary/20">
             <BorderBeam size={360} duration={14} delay={0} colorFrom="#3b82f6" colorTo="#8b5cf6" />
             <CarouselPlugin />
           </div>

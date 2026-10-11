@@ -74,9 +74,9 @@ const testimonials: Testimonial[] = [
 
 function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   return (
-    <div className="relative w-[320px] flex-shrink-0 bg-card border border-border rounded-3xl p-6 flex flex-col gap-4 hover:border-primary/30 transition-colors duration-300 overflow-hidden group">
+    <div className="glass-card glass-card-hover relative w-[320px] flex-shrink-0 rounded-3xl p-6 flex flex-col gap-4 overflow-hidden group">
       {/* Subtle hover gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none rounded-3xl" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none rounded-3xl" />
       
       {/* Stars */}
       <div className="flex gap-0.5">

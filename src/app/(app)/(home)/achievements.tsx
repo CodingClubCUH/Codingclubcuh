@@ -69,16 +69,16 @@ export default async function AchievementsSection() {
             return (
               <div
                 key={item.id}
-                className={`group relative bg-gradient-to-br ${tint} bg-card border border-border rounded-3xl p-6 flex flex-col hover:-translate-y-1 hover:border-amber-400/30 hover:shadow-xl hover:shadow-amber-400/5 transition-all duration-500 overflow-hidden`}
+                className={`glass-card glass-card-hover group relative bg-gradient-to-br ${tint} rounded-3xl p-6 flex flex-col hover:border-amber-400/50 hover:shadow-xl hover:shadow-amber-400/10 transition-all duration-500 overflow-hidden`}
               >
                 {/* Corner shimmer accent */}
-                <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-amber-400/5 blur-xl pointer-events-none group-hover:bg-amber-400/10 transition-colors duration-500" />
+                <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-amber-400/5 blur-xl pointer-events-none group-hover:bg-amber-400/15 transition-colors duration-500" />
 
                 <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${iconColor} transition-transform group-hover:scale-110 duration-300`}>
+                  <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${iconColor} transition-transform group-hover:scale-110 duration-300 shadow-xs`}>
                     <Icon className="w-6 h-6" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-muted text-muted-foreground border border-border/60">
+                  <span className="glass-pill text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full text-muted-foreground">
                     {item.category.replace('-', ' ')}
                   </span>
                 </div>

@@ -118,9 +118,9 @@ export function AboutTerminal() {
   };
 
   return (
-    <div className="rounded-3xl border border-border/80 bg-zinc-950 text-zinc-100 shadow-2xl overflow-hidden font-mono text-xs">
+    <div className="glass-panel rounded-3xl border border-white/15 dark:border-white/10 bg-zinc-950/80 backdrop-blur-2xl text-zinc-100 shadow-2xl shadow-primary/10 overflow-hidden font-mono text-xs ring-1 ring-white/10">
       {/* Terminal Titlebar & Tab Bar */}
-      <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-zinc-900 border-b border-zinc-800 text-zinc-400 gap-2">
+      <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-zinc-900/60 backdrop-blur-xl border-b border-white/10 text-zinc-400 gap-2">
         {/* Window controls */}
         <div className="flex items-center gap-2">
           <span className="size-3 rounded-full bg-red-500/80 inline-block" />

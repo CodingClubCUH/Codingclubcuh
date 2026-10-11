@@ -57,13 +57,13 @@ export default function StatsSection() {
             return (
               <div
                 key={stat.label}
-                className="group relative p-6 rounded-3xl border border-border/80 bg-card/80 backdrop-blur-xl hover:border-primary/50 transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-primary/10 flex flex-col justify-between"
+                className="glass-card glass-card-hover group relative p-6 rounded-3xl flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between mb-6">
-                  <div className={`size-12 rounded-2xl bg-gradient-to-br ${stat.color} border flex items-center justify-center transition-transform group-hover:scale-110`}>
+                  <div className={`size-12 rounded-2xl bg-gradient-to-br ${stat.color} border flex items-center justify-center transition-transform group-hover:scale-110 shadow-xs`}>
                     <Icon className="size-6" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/60">
+                  <span className="glass-pill text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full text-muted-foreground">
                     Verified
                   </span>
                 </div>
@@ -86,7 +86,7 @@ export default function StatsSection() {
         {/* Bottom Split Bento: Excellence & Faculty Spotlight */}
         <div className="grid gap-8 md:grid-cols-12 items-stretch">
           <div className="md:col-span-5 flex flex-col justify-between space-y-6">
-            <div className="rounded-3xl border border-border/80 bg-card/80 backdrop-blur-xl p-8 shadow-sm">
+            <div className="glass-card rounded-3xl p-8 shadow-lg flex flex-col justify-between h-full">
               <h3 className="text-2xl font-bold font-handjet text-foreground tracking-wide mb-3">
                 Peer-Driven Innovation Model
               </h3>
@@ -94,11 +94,11 @@ export default function StatsSection() {
                 Shaping the future of student engineers through coding classes, hackathons, and real-world system design. Our senior-to-junior mentoring loop ensures no learner is left behind.
               </p>
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl border border-border/70 bg-muted/40">
+                <div className="glass-pill p-4 rounded-2xl">
                   <span className="text-3xl font-bold font-handjet text-primary block">3+</span>
                   <p className="text-xs font-medium text-muted-foreground mt-1">Years of Legacy</p>
                 </div>
-                <div className="p-4 rounded-2xl border border-border/70 bg-muted/40">
+                <div className="glass-pill p-4 rounded-2xl">
                   <span className="text-3xl font-bold font-handjet text-primary block">50+</span>
                   <p className="text-xs font-medium text-muted-foreground mt-1">Student Mentors</p>
                 </div>
@@ -107,9 +107,9 @@ export default function StatsSection() {
           </div>
 
           <div className="md:col-span-7">
-            <div className="h-full relative rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card/95 to-primary/5 p-8 shadow-xl backdrop-blur-xl flex flex-col justify-between">
+            <div className="glass-panel h-full relative rounded-3xl p-8 shadow-xl flex flex-col justify-between border border-white/20 dark:border-white/10 ring-1 ring-primary/20">
               <div className="flex items-center justify-between mb-4">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                <div className="glass-pill inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-primary">
                   <Award size={13} />
                   <span>Faculty Leadership & Guidance</span>
                 </div>

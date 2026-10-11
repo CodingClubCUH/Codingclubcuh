@@ -74,10 +74,10 @@ export default async function RecentPostsSection() {
                 <Link
                   href={postHref}
                   key={post.id}
-                  className="group relative flex flex-col bg-card rounded-3xl p-5 border border-border hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/8 transition-all duration-500 overflow-hidden h-full"
+                  className="glass-card glass-card-hover group relative flex flex-col rounded-3xl p-5 overflow-hidden h-full"
                 >
                   {/* Hover ambient top shimmer */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-primary/3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none rounded-3xl" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none rounded-3xl" />
 
                   <div className="relative aspect-[16/10] w-full bg-muted/60 rounded-2xl overflow-hidden mb-5 border border-border flex items-center justify-center">
                     {heroUrl ? (

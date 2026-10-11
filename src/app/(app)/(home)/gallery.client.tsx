@@ -45,10 +45,10 @@ export default function GalleryClient({ photos }: { photos: PhotoItem[] }) {
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${
               activeCategory === cat.id
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                ? "bg-primary text-primary-foreground shadow-md shadow-primary/25 scale-105"
+                : "glass-pill text-muted-foreground hover:text-foreground hover:scale-105"
             }`}
           >
             {cat.label}
@@ -66,7 +66,7 @@ export default function GalleryClient({ photos }: { photos: PhotoItem[] }) {
           {filteredPhotos.map((photo) => (
             <div
               key={photo.id}
-              className="relative group rounded-xl overflow-hidden cursor-pointer bg-muted border border-border break-inside-avoid glow-hover transition-all"
+              className="glass-card glass-card-hover relative group rounded-2xl overflow-hidden cursor-pointer break-inside-avoid shadow-lg"
               onClick={() => setSelectedImage(photo)}
             >
               {photo.image && typeof photo.image === "object" && photo.image.url && (

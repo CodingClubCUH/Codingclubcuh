@@ -53,10 +53,10 @@ export async function POST(req: NextRequest) {
 
     const personaPrompt =
       persona === "mentor"
-        ? `${CLUB_SYSTEM_PROMPT}\n\nSPECIAL FOCUS [CODE MENTOR MODE]: Prioritize code solutions, algorithmic rigor, complexity analysis, clean syntax, and idiomatic practices.`
+        ? `${CLUB_SYSTEM_PROMPT}\n\nSPECIAL FOCUS [CODE MENTOR MODE]: Prioritize code solutions, algorithmic rigor, complexity analysis, clean syntax, and idiomatic practices. Answer any question the user asks with technical depth and clarity.`
         : persona === "coach"
-        ? `${CLUB_SYSTEM_PROMPT}\n\nSPECIAL FOCUS [HACKATHON & CAREER COACH MODE]: Focus on project architecture, pitch strategies, interview prep, resumes, and winning hackathon frameworks.`
-        : `${CLUB_SYSTEM_PROMPT}\n\nSPECIAL FOCUS [CLUB GUIDE MODE]: Guide the user on campus events, courses, certificates, team coordinators, and university navigation.`;
+        ? `${CLUB_SYSTEM_PROMPT}\n\nSPECIAL FOCUS [HACKATHON & CAREER COACH MODE]: Focus on project architecture, pitch strategies, interview prep, resumes, and winning hackathon frameworks. Answer any question the user asks thoroughly.`
+        : `${CLUB_SYSTEM_PROMPT}\n\nSPECIAL FOCUS [CLUB GUIDE MODE]: Guide the user on campus events, courses, certificates, team coordinators, university navigation, and any general knowledge or technical question the user asks.`;
 
     const geminiApiKey = resolveGeminiApiKey(clientGeminiKey);
 
@@ -89,11 +89,14 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Most reliable models in verified order: gemini-flash-latest, gemini-3.5-flash, gemini-3.8-flash
+        // Most reliable models in verified order: gemini-3.5-flash, gemini-3.5-flash-lite, gemini-3.1-flash-lite, gemini-3-flash-preview, gemini-3.8-flash, gemini-flash-latest
         const modelsToTry = [
-          "gemini-flash-latest",
           "gemini-3.5-flash",
+          "gemini-3.5-flash-lite",
+          "gemini-3.1-flash-lite",
+          "gemini-3-flash-preview",
           "gemini-3.8-flash",
+          "gemini-flash-latest",
         ];
 
         let generatedText: string | null = null;
@@ -164,7 +167,7 @@ export async function POST(req: NextRequest) {
 
     const isApiKeyMissing = !geminiApiKey;
     const contentWithNotice = isApiKeyMissing
-      ? `${fallbackResponse.content}\n\n> 💡 **AI Power:** To enable unrestricted AI answers for any question, add your free **GEMINI_API_KEY** in **Settings ⚙️** (top of chat) or in \`.env\`!`
+      ? `${fallbackResponse.content}\n\n> 💡 **AI Power:** To enable unrestricted AI answers for any question, configure **GEMINI_API_KEY** in \`.env\`!`
       : fallbackResponse.content;
 
     return NextResponse.json({

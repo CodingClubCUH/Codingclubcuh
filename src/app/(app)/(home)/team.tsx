@@ -108,14 +108,14 @@ export default async function TeamSection() {
               return (
                 <div
                   key={member.id}
-                  className="group relative bg-card border border-border rounded-3xl p-5 flex flex-col items-center text-center hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/8 transition-all duration-400 overflow-hidden"
+                  className="glass-card glass-card-hover group relative rounded-3xl p-5 flex flex-col items-center text-center overflow-hidden"
                 >
                   {/* Hover shimmer */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-primary/3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none rounded-3xl" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none rounded-3xl" />
 
                   {/* Avatar */}
                   <div className="relative mb-4">
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden bg-muted ring-2 ring-border group-hover:ring-primary/30 transition-all duration-300">
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden bg-muted ring-2 ring-white/10 group-hover:ring-primary/40 transition-all duration-300 shadow-sm">
                       {photoUrl ? (
                         <Image
                           src={photoUrl}
@@ -137,14 +137,14 @@ export default async function TeamSection() {
                   </div>
 
                   {/* Name & position */}
-                  <h3 className="font-bold text-sm text-foreground leading-tight">{member.name}</h3>
+                  <h3 className="font-bold text-sm text-foreground leading-tight group-hover:text-primary transition-colors">{member.name}</h3>
                   <p className="text-xs font-semibold text-primary mt-0.5">{member.position}</p>
                   {member.courseYear && (
                     <p className="text-[10px] text-muted-foreground mt-0.5">{member.courseYear}</p>
                   )}
 
                   {/* Category badge */}
-                  <div className={`mt-3 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border ${catStyle}`}>
+                  <div className={`glass-pill mt-3 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border ${catStyle}`}>
                     {member.category}
                   </div>
 
@@ -155,7 +155,7 @@ export default async function TeamSection() {
                         <Link
                           href={member.github}
                           target="_blank"
-                          className="size-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                          className="glass-pill size-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-all shadow-xs"
                         >
                           <Github className="w-3.5 h-3.5" />
                         </Link>
@@ -164,7 +164,7 @@ export default async function TeamSection() {
                         <Link
                           href={member.linkedin}
                           target="_blank"
-                          className="size-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                          className="glass-pill size-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-all shadow-xs"
                         >
                           <Linkedin className="w-3.5 h-3.5" />
                         </Link>
