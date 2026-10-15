@@ -31,7 +31,7 @@ export default async function ContentSection() {
     typeof teamGroupPhoto.image === "object" &&
     teamGroupPhoto.image.url
       ? teamGroupPhoto.image.url
-      : "https://res.cloudinary.com/azzisskq/image/upload/v1789927153/codingclub/teams/members/cuh_team_2026.jpg";
+      : "https://res.cloudinary.com/khxwr1df/image/upload/v1789927153/codingclub/teams/members/cuh_team_2026.jpg";
 
   return (
     <section className="bg-background py-16">

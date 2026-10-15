@@ -24,7 +24,7 @@ export interface ClubEcosystem {
   department: "Dept. of CS & IT";
   established: 2022;
   facultyMentor: "Dr. Sunil Kumar";
-  techStack: ["Next.js 15", "Python", "C++", "Gemini AI", "Payload CMS"];
+  techStack: ["Next.js 15", "Python", "C++", "AI Assistant", "Payload CMS"];
   accessPolicy: "100% Free For All Students";
   activeCoders: 500;
   status: "ACTIVE_AND_EXPANDING";
@@ -74,15 +74,12 @@ echo "✨ Ready to build the future at CUH!"`,
     language: "python",
     icon: Cpu,
     code: `# CUH AI Coding Mentor Integration
-import google.genai as genai
+from cuh_ai import CodingAssistant
 
-mentor = genai.Client()
+assistant = CodingAssistant()
 
 prompt = "Explain Dijkstra's algorithm for CUH campus navigation graph"
-response = mentor.models.generate_content(
-    model="gemini-flash-latest",
-    contents=prompt
-)
+response = assistant.solve(prompt)
 
 print("🤖 AI Mentor:", response.text[:120] + "...")`,
     output: [

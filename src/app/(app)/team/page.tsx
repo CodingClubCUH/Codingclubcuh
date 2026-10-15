@@ -110,7 +110,7 @@ export default async function TeamPage() {
                       photoUrl = member.photo.url || null;
                       if (photoUrl && photoUrl.startsWith('/api/media/file/') && member.photo.filename) {
                         const folder = member.photo.folder || 'teams/members';
-                        photoUrl = `https://res.cloudinary.com/azzisskq/image/upload/codingclub/${folder}/${member.photo.filename}`;
+                        photoUrl = `https://res.cloudinary.com/khxwr1df/image/upload/codingclub/${folder}/${member.photo.filename}`;
                       }
                     } else if (typeof member.photo === "string") {
                       photoUrl = member.photo;

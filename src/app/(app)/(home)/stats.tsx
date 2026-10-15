@@ -127,7 +127,7 @@ export default function StatsSection() {
                   <Image
                     alt="Dr. Sunil Kumar"
                     className="size-14 rounded-2xl border-2 border-primary/40 object-cover shadow-md"
-                    src="https://res.cloudinary.com/azzisskq/image/upload/v1789927151/codingclub/teams/coordinators/dr_sunil_kumar.jpg"
+                    src="https://res.cloudinary.com/khxwr1df/image/upload/v1789927151/codingclub/teams/coordinators/dr_sunil_kumar.jpg"
                     loading="lazy"
                     width={120}
                     height={120}

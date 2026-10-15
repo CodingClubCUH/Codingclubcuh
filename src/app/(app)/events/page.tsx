@@ -36,7 +36,7 @@ export default async function EventsPage() {
       shortDescription: 'Comprehensive hands-on coding session covering foundational concepts in C and practical problem solving with Python.',
       status: 'completed',
       coverPhoto: {
-        url: 'https://res.cloudinary.com/azzisskq/image/upload/v1789927154/codingclub/events/coding-class/c_python_masterclass.jpg',
+        url: 'https://res.cloudinary.com/khxwr1df/image/upload/v1789927154/codingclub/events/coding-class/c_python_masterclass.jpg',
       },
     },
     {
@@ -47,7 +47,7 @@ export default async function EventsPage() {
       shortDescription: 'Learn modern web engineering with Next.js, Tailwind CSS, and APIs from student mentors.',
       status: 'completed',
       coverPhoto: {
-        url: 'https://res.cloudinary.com/azzisskq/image/upload/v1789927154/codingclub/events/workshops/fullstack_web_dev.jpg',
+        url: 'https://res.cloudinary.com/khxwr1df/image/upload/v1789927154/codingclub/events/workshops/fullstack_web_dev.jpg',
       },
     },
     {
@@ -58,7 +58,7 @@ export default async function EventsPage() {
       shortDescription: 'Campus-wide hackathon where students build innovative software solutions and win awards.',
       status: 'completed',
       coverPhoto: {
-        url: 'https://res.cloudinary.com/azzisskq/image/upload/v1789927159/codingclub/gallery/2026/hackathon_session_1.jpg',
+        url: 'https://res.cloudinary.com/khxwr1df/image/upload/v1789927159/codingclub/gallery/2026/hackathon_session_1.jpg',
       },
     },
   ];
@@ -82,7 +82,7 @@ export default async function EventsPage() {
       coverUrl = event.coverPhoto.url || null;
       if (coverUrl && coverUrl.startsWith('/api/media/file/') && event.coverPhoto.filename) {
         const folder = event.coverPhoto.folder || 'events/hackathon';
-        coverUrl = `https://res.cloudinary.com/azzisskq/image/upload/codingclub/${folder}/${event.coverPhoto.filename}`;
+        coverUrl = `https://res.cloudinary.com/khxwr1df/image/upload/codingclub/${folder}/${event.coverPhoto.filename}`;
       }
     } else if (typeof event.coverPhoto === "string") {
       coverUrl = event.coverPhoto;
@@ -92,7 +92,7 @@ export default async function EventsPage() {
 
     // Only fallback if no image URL could be resolved
     if (!coverUrl) {
-      coverUrl = 'https://res.cloudinary.com/azzisskq/image/upload/v1789927159/codingclub/gallery/2026/hackathon_session_1.jpg';
+      coverUrl = 'https://res.cloudinary.com/khxwr1df/image/upload/v1789927159/codingclub/gallery/2026/hackathon_session_1.jpg';
     }
 
     return {

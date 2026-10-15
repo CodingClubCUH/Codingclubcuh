@@ -148,8 +148,8 @@ export async function POST(req: NextRequest) {
         if (generatedText) {
           return NextResponse.json({
             success: true,
-            provider: "gemini",
-            model: usedModel,
+            provider: "ai",
+            model: "Coding Club AI",
             message: {
               role: "assistant",
               content: generatedText,
@@ -158,25 +158,19 @@ export async function POST(req: NextRequest) {
           });
         }
       } catch (geminiError) {
-        console.error("Gemini API call failed:", geminiError);
+        console.error("AI API call failed:", geminiError);
       }
     }
 
-    // 2. Intelligent dynamic fallback if no API key is provided or if call fails
+    // 2. Intelligent dynamic fallback if API key is pending or network error
     const fallbackResponse = getSmartFallbackResponse(userQuery);
-
-    const isApiKeyMissing = !geminiApiKey;
-    const contentWithNotice = isApiKeyMissing
-      ? `${fallbackResponse.content}\n\n> 💡 **AI Power:** To enable unrestricted AI answers for any question, configure **GEMINI_API_KEY** in \`.env\`!`
-      : fallbackResponse.content;
 
     return NextResponse.json({
       success: true,
-      provider: "local-kb",
-      missingApiKey: isApiKeyMissing,
+      provider: "assistant",
       message: {
         role: "assistant",
-        content: contentWithNotice,
+        content: fallbackResponse.content,
       },
       suggestedFollowUps: fallbackResponse.suggestedFollowUps,
     });

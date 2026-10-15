@@ -270,9 +270,13 @@ codingclub/
 
    | Variable | Required | Description | Default / Example |
    | :--- | :---: | :--- | :--- |
-   | `DATABASE_URI` | **Yes** | Database connection string | `file:payload.db` |
+   | `DATABASE_URI` | **Yes** | PostgreSQL database connection string | `postgresql://postgres:[password]@db.vxcfaxvnftdlllcbgehw.supabase.co:5432/postgres` |
    | `PAYLOAD_SECRET` | **Yes** | Encryption key for auth & sessions | `your-secure-random-key` |
    | `NEXT_PUBLIC_SERVER_URL` | **Yes** | Root URL for the application | `http://localhost:3001` |
+   | `CLOUDINARY_CLOUD_NAME` | **Yes** | Cloudinary Cloud Name | `khxwr1df` |
+   | `CLOUDINARY_UPLOAD_PRESET` | **Yes** | Cloudinary Upload Preset | `codingclub` |
+   | `SUPABASE_URL` | Optional | Supabase Project URL | `https://vxcfaxvnftdlllcbgehw.supabase.co` |
+   | `SUPABASE_ANON_KEY` | Optional | Supabase Publishable / Anon Key | `sb_publishable_...` |
    | `TELEGRAM_BOT_TOKEN` | Optional | Telegram bot token for alerts | `123456:ABC-DEF...` |
    | `TELEGRAM_CHAT_ID` | Optional | Telegram channel/chat target ID | `-100123456789` |
 

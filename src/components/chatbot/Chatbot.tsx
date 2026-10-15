@@ -48,7 +48,7 @@ export default function Chatbot() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [persona, setPersona] = useState<PersonaType>("mentor");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [currentModelName, setCurrentModelName] = useState<string | null>("Gemini AI");
+  const [currentModelName, setCurrentModelName] = useState<string | null>("AI Assistant");
 
   // Voice speech-to-text state
   const [isListening, setIsListening] = useState(false);
@@ -119,7 +119,7 @@ export default function Chatbot() {
       role: "assistant",
       content: `👋 **Welcome to Coding Club CUH!**
 
-I am powered by **Google Gemini AI**. You can ask me **anything** — whether you need help with **programming & debugging in any language**, project ideas, career roadmaps, or information about our **workshops, events, courses, and certificates**!`,
+I am your **Coding Club CUH Assistant**. You can ask me **anything** — whether you need help with **programming & debugging in any language**, project ideas, career roadmaps, or information about our **workshops, events, courses, and certificates**!`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       suggestedFollowUps: [
         "Explain binary search with Python code",

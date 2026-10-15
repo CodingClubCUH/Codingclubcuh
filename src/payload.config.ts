@@ -37,7 +37,7 @@ const dirname = path.dirname(filename);
 const getDatabaseURI = (): string => {
   let uri =
     process.env.DATABASE_URI ||
-    "postgresql://postgres.awtneocokxlaunyxajzr:Codingclubcuh%4022@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
+    "postgresql://postgres.vxcfaxvnftdlllcbgehw:Codingclubcuh%4022@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
 
   // If using Supabase connection pooler on session port 5432, automatically switch to transaction pooler port 6543
   if (uri.includes(".pooler.supabase.com:5432")) {
@@ -309,8 +309,17 @@ export default buildConfig({
             "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
             "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
           );
-          INSERT INTO "students" DEFAULT VALUES
-            WHERE NOT EXISTS (SELECT 1 FROM "students" LIMIT 1);
+          INSERT INTO "students" ("id")
+            SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM "students" LIMIT 1);
+
+          DO $$
+          BEGIN
+            CREATE TYPE "public"."enum_events_image_orientation" AS ENUM('landscape', 'portrait', 'square');
+          EXCEPTION
+            WHEN duplicate_object THEN null;
+          END $$;
+          ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "image_orientation" "enum_events_image_orientation" DEFAULT 'landscape';
+          ALTER TABLE "media" ADD COLUMN IF NOT EXISTS "folder" varchar DEFAULT 'gallery/2026';
         `;
       if (db?.pool?.query) {
         await db.pool.query(schemaSql);

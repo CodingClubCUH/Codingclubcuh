@@ -27,7 +27,7 @@ export const CLOUDINARY_TEAM_MEMBERS: CloudinaryTeamMember[] = [
     courseYear: 'Central University of Haryana',
     folder: 'codingclub/teams/coordinators',
     photo: {
-      url: 'https://res.cloudinary.com/azzisskq/image/upload/v1789927151/codingclub/teams/coordinators/vice_chancellor.jpg',
+      url: 'https://res.cloudinary.com/khxwr1df/image/upload/v1789927151/codingclub/teams/coordinators/vice_chancellor.jpg',
       width: 1205,
       height: 904,
     },
@@ -42,7 +42,7 @@ export const CLOUDINARY_TEAM_MEMBERS: CloudinaryTeamMember[] = [
     courseYear: 'Department of Computer Science & Engineering',
     folder: 'codingclub/teams/coordinators',
     photo: {
-      url: 'https://res.cloudinary.com/azzisskq/image/upload/v1789927151/codingclub/teams/coordinators/dr_sunil_kumar.jpg',
+      url: 'https://res.cloudinary.com/khxwr1df/image/upload/v1789927151/codingclub/teams/coordinators/dr_sunil_kumar.jpg',
       width: 1068,
       height: 611,
     },
@@ -56,7 +56,7 @@ export const CLOUDINARY_TEAM_MEMBERS: CloudinaryTeamMember[] = [
     courseYear: 'B.Tech Computer Science & Engineering',
     folder: 'codingclub/teams/members',
     photo: {
-      url: 'https://res.cloudinary.com/azzisskq/image/upload/v1789927153/codingclub/teams/members/cuh_team_2026.jpg',
+      url: 'https://res.cloudinary.com/khxwr1df/image/upload/v1789927153/codingclub/teams/members/cuh_team_2026.jpg',
       width: 3990,
       height: 2314,
     },
@@ -71,7 +71,7 @@ export const CLOUDINARY_TEAM_MEMBERS: CloudinaryTeamMember[] = [
     courseYear: 'Department of CSE, CUH',
     folder: 'codingclub/teams/members',
     photo: {
-      url: 'https://res.cloudinary.com/azzisskq/image/upload/v1789927155/codingclub/gallery/2026/club_group_photo.jpg',
+      url: 'https://res.cloudinary.com/khxwr1df/image/upload/v1789927155/codingclub/gallery/2026/club_group_photo.jpg',
       width: 1265,
       height: 581,
     },

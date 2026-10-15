@@ -8,21 +8,21 @@ const DEFAULT_OBJECTIVES: ObjectiveItem[] = [
     title: "Classes By Students",
     description: `Peer-to-peer coding sessions. Hands-on workshops on programming & tech. Web development & ML tutorials. Coding contests & hackathons. Learn by teaching & sharing knowledge.`,
     icon: "BookOpen",
-    image: "https://res.cloudinary.com/azzisskq/image/upload/v1789927155/codingclub/gallery/2026/club_group_photo.jpg",
+    image: "https://res.cloudinary.com/khxwr1df/image/upload/v1789927155/codingclub/gallery/2026/club_group_photo.jpg",
   },
   {
     id: "da",
     title: "Development Activities",
     description: `Real-world project building. Open-source contributions. Campus-focused apps & websites. Tech seminars & industry talks. Networking with experts & alumni.`,
     icon: "Code2",
-    image: "https://res.cloudinary.com/azzisskq/image/upload/v1789927153/codingclub/teams/members/cuh_team_2026.jpg",
+    image: "https://res.cloudinary.com/khxwr1df/image/upload/v1789927153/codingclub/teams/members/cuh_team_2026.jpg",
   },
   {
     id: "oo",
     title: "Other Objectives",
     description: `Promote coding culture & innovation. Encourage participation in competitions. Strengthen skills for placements & internships. Make coding fun, practical & impactful.`,
     icon: "Rocket",
-    image: "https://res.cloudinary.com/azzisskq/image/upload/v1789927156/codingclub/gallery/2026/media_coverage_dainik_bhaskar.jpg",
+    image: "https://res.cloudinary.com/khxwr1df/image/upload/v1789927156/codingclub/gallery/2026/media_coverage_dainik_bhaskar.jpg",
   },
 ];
 
