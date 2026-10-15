@@ -191,6 +191,390 @@ export function getSmartFallbackResponse(query: string): {
   const normalized = query.toLowerCase().trim();
 
   // 1. Dynamic Coding & Algorithm Handlers
+  // C Programming
+  if (
+    normalized.includes("c code") ||
+    normalized.includes("c program") ||
+    normalized.includes("c language") ||
+    normalized.includes("in c") ||
+    /\b(write|give|create|show)\b.*\b(c)\b/i.test(normalized)
+  ) {
+    return {
+      content: `Here is a complete, clean, and beginner-friendly **C program**:
+
+### C Code (Interactive Math & Logic Example):
+\`\`\`c
+#include <stdio.h>
+
+// Function to calculate factorial
+long long factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+int main(void) {
+    int num = 5;
+    printf("=======================================\\n");
+    printf("  Coding Club CUH - C Programming Demo \\n");
+    printf("=======================================\\n");
+    
+    printf("Calculating factorial of %d...\\n", num);
+    long long result = factorial(num);
+    printf("Result: %d! = %lld\\n\\n", num, result);
+    
+    // Array and pointer demonstration
+    int numbers[] = {10, 25, 45, 80, 99};
+    int length = sizeof(numbers) / sizeof(numbers[0]);
+    
+    printf("Array traversal using pointers:\\n");
+    for (int i = 0; i < length; i++) {
+        printf("Index [%d] = %d (Address: %p)\\n", i, *(numbers + i), (void*)&numbers[i]);
+    }
+
+    printf("\\nProgram executed successfully!\\n");
+    return 0;
+}
+\`\`\`
+
+### How to Compile & Run:
+\`\`\`bash
+# 1. Compile with GCC:
+gcc -Wall main.c -o main
+
+# 2. Execute:
+./main
+\`\`\`
+
+### Key C Concepts Included:
+- **Recursion & Functions:** Clean stack-based computation with edge case checks.
+- **Pointers & Memory:** Direct pointer arithmetic \`*(numbers + i)\` accessing array contiguous blocks.
+- **Strict Return Codes:** \`return 0\` signals successful OS process termination.
+
+*Want to master C and low-level programming? Join our peer classes on the [Courses Page](/courses)!*`,
+      suggestedFollowUps: [
+        "Explain pointers in C",
+        "How to write dynamic memory allocation with malloc() in C",
+        "Show a C++ equivalent program",
+        "Browse club courses",
+      ],
+    };
+  }
+
+  // C++ Programming
+  if (normalized.includes("c++") || normalized.includes("cpp")) {
+    return {
+      content: `Here is a modern **C++20** program using standard library containers and algorithms:
+
+### C++ Implementation:
+\`\`\`cpp
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+
+int main() {
+    std::cout << "--- Coding Club CUH Modern C++ Demo ---\\n";
+
+    std::vector<int> data = {42, 17, 89, 5, 63, 28};
+
+    // 1. Sort using standard algorithm
+    std::sort(data.begin(), data.end());
+    std::cout << "Sorted elements: ";
+    for (const auto& val : data) {
+        std::cout << val << " ";
+    }
+    std::cout << "\\n";
+
+    // 2. Sum with std::accumulate
+    int sum = std::accumulate(data.begin(), data.end(), 0);
+    std::cout << "Total Sum: " << sum << "\\n";
+    std::cout << "Average: " << static_cast<double>(sum) / data.size() << "\\n";
+
+    return 0;
+}
+\`\`\`
+
+### How to Compile & Run:
+\`\`\`bash
+g++ -std=c++20 -O2 main.cpp -o main
+./main
+\`\`\`
+
+*Check out our competitive programming tracks on the [Courses Page](/courses)!*`,
+      suggestedFollowUps: [
+        "Explain STL vectors and maps in C++",
+        "Show Binary Search in C++",
+        "What are modern C++ features?",
+      ],
+    };
+  }
+
+  // Python Programming
+  if (
+    normalized.includes("python") ||
+    normalized.includes("py code") ||
+    normalized.includes("python script")
+  ) {
+    return {
+      content: `Here is clean, idiomatic **Python 3** code:
+
+### Python Implementation:
+\`\`\`python
+def analyze_numbers(numbers: list[int]) -> dict:
+    """Computes basic statistics cleanly for a list of integers."""
+    if not numbers:
+        return {"error": "Empty list"}
+
+    total = sum(numbers)
+    average = total / len(numbers)
+    maximum = max(numbers)
+    minimum = min(numbers)
+    evens = [x for x in numbers if x % 2 == 0]
+
+    return {
+        "count": len(numbers),
+        "sum": total,
+        "average": average,
+        "max": maximum,
+        "min": minimum,
+        "even_count": len(evens),
+    }
+
+if __name__ == "__main__":
+    sample_data = [12, 45, 78, 23, 56, 89, 90, 11]
+    stats = analyze_numbers(sample_data)
+    
+    print("📊 Analysis Results:")
+    for key, value in stats.items():
+        print(f"  • {key.capitalize()}: {value}")
+\`\`\`
+
+### How to Run:
+\`\`\`bash
+python3 main.py
+\`\`\``,
+      suggestedFollowUps: [
+        "Explain Python list comprehensions",
+        "Write Binary Search in Python",
+        "Give me a complete Python learning roadmap",
+      ],
+    };
+  }
+
+  // Java Programming
+  if (normalized.includes("java")) {
+    return {
+      content: `Here is a complete, object-oriented **Java** program:
+
+### Java Implementation:
+\`\`\`java
+import java.util.ArrayList;
+import java.util.Collections;
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Coding Club CUH - Java Demonstration");
+
+        ArrayList<String> techStack = new ArrayList<>();
+        techStack.add("Java");
+        techStack.add("Spring Boot");
+        techStack.add("PostgreSQL");
+        techStack.add("Next.js");
+
+        Collections.sort(techStack);
+
+        System.out.println("Sorted Technologies:");
+        for (String tech : techStack) {
+            System.out.println(" -> " + tech);
+        }
+    }
+}
+\`\`\`
+
+### How to Compile & Run:
+\`\`\`bash
+javac Main.java
+java Main
+\`\`\``,
+      suggestedFollowUps: [
+        "Explain Object-Oriented Programming (OOP) in Java",
+        "How to use HashMap in Java?",
+        "Compare Java vs Python",
+      ],
+    };
+  }
+
+  // Sorting & Algorithms
+  if (normalized.includes("bubble sort") || normalized.includes("sort")) {
+    return {
+      content: `Here is **Bubble Sort** with step-by-step optimization:
+
+### C & Python Implementations:
+
+#### 1. C Implementation:
+\`\`\`c
+#include <stdio.h>
+#include <stdbool.h>
+
+void bubbleSort(int arr[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        bool swapped = false;
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+                swapped = true;
+            }
+        }
+        if (!swapped) break; // Optimized for nearly sorted arrays
+    }
+}
+\`\`\`
+
+#### 2. Python Implementation:
+\`\`\`python
+def bubble_sort(arr: list[int]) -> list[int]:
+    n = len(arr)
+    for i in range(n):
+        swapped = False
+        for j in range(0, n - i - 1):
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+                swapped = True
+        if not swapped:
+            break
+    return arr
+\`\`\`
+
+### Complexity:
+- **Best Case:** $O(n)$ when already sorted.
+- **Worst & Average Case:** $O(n^2)$.
+- **Space:** $O(1)$ auxiliary.`,
+      suggestedFollowUps: [
+        "Show Quick Sort implementation",
+        "Show Merge Sort implementation",
+        "Binary Search implementation",
+      ],
+    };
+  }
+
+  // Fibonacci / Prime / Factorial
+  if (
+    normalized.includes("fibonacci") ||
+    normalized.includes("prime") ||
+    normalized.includes("factorial") ||
+    normalized.includes("palindrome")
+  ) {
+    return {
+      content: `Here are optimal competitive programming solutions:
+
+### 1. Fibonacci Series ($O(n)$ Iterative):
+\`\`\`python
+def generate_fibonacci(n: int) -> list[int]:
+    if n <= 0: return []
+    if n == 1: return [0]
+    fib = [0, 1]
+    for _ in range(2, n):
+        fib.append(fib[-1] + fib[-2])
+    return fib
+\`\`\`
+
+### 2. Prime Number Check ($O(\\sqrt{n})$):
+\`\`\`c
+#include <stdbool.h>
+#include <math.h>
+
+bool isPrime(int n) {
+    if (n <= 1) return false;
+    if (n <= 3) return true;
+    if (n % 2 == 0 || n % 3 == 0) return false;
+    for (int i = 5; i * i <= n; i += 6) {
+        if (n % i == 0 || n % (i + 2) == 0) return false;
+    }
+    return true;
+}
+\`\`\``,
+      suggestedFollowUps: [
+        "Explain Sieve of Eratosthenes",
+        "Explain Two Sum",
+        "Check upcoming coding contests",
+      ],
+    };
+  }
+
+  // Calculator
+  if (normalized.includes("calc") || normalized.includes("calculator")) {
+    return {
+      content: `Here is a complete **CLI Calculator** in C and Python:
+
+### In C:
+\`\`\`c
+#include <stdio.h>
+
+int main() {
+    char op;
+    double a, b;
+    printf("Enter operator (+, -, *, /): ");
+    scanf(" %c", &op);
+    printf("Enter two numbers: ");
+    scanf("%lf %lf", &a, &b);
+
+    switch (op) {
+        case '+': printf("Result: %.2lf\\n", a + b); break;
+        case '-': printf("Result: %.2lf\\n", a - b); break;
+        case '*': printf("Result: %.2lf\\n", a * b); break;
+        case '/':
+            if (b != 0) printf("Result: %.2lf\\n", a / b);
+            else printf("Error: Division by zero!\\n");
+            break;
+        default: printf("Invalid operator!\\n");
+    }
+    return 0;
+}
+\`\`\``,
+      suggestedFollowUps: [
+        "Explain switch case in C",
+        "Write an object-oriented calculator in Python",
+        "Browse courses",
+      ],
+    };
+  }
+
+  // General Coding / Program Query Fallback
+  if (
+    normalized.includes("code") ||
+    normalized.includes("program") ||
+    normalized.includes("function") ||
+    normalized.includes("script") ||
+    normalized.includes("algorithm") ||
+    normalized.startsWith("write") ||
+    normalized.startsWith("how to code")
+  ) {
+    return {
+      content: `I'd love to help you write and debug code! 💻
+
+Please let me know:
+1. **Which programming language** (e.g., C, C++, Python, Java, JavaScript, TypeScript)?
+2. **The specific problem or logic** (e.g., File I/O, Linked List, Sorting, API fetching, or Web UI)?
+
+### Quick Starter Examples Available:
+- **C Language:** Say *"write a c code"* or *"pointers in c"*
+- **Python:** Say *"python script for binary search"* or *"web scraping in python"*
+- **C++:** Say *"c++ vector and stl example"*
+- **Web Development:** Say *"2026 web dev roadmap"* or *"Next.js API route"*
+
+Feel free to paste any error message or problem statement!`,
+      suggestedFollowUps: [
+        "Write a C code example",
+        "Write a Python code example",
+        "Explain Binary Search",
+        "Give me a Web Development roadmap",
+      ],
+    };
+  }
+
+  // Binary Search
   if (normalized.includes("binary search")) {
     return {
       content: `Here is a complete, clean implementation of **Binary Search**:
