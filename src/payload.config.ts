@@ -35,9 +35,7 @@ const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
 const getDatabaseURI = (): string => {
-  let uri =
-    process.env.DATABASE_URI ||
-    "postgresql://postgres.vxcfaxvnftdlllcbgehw:Codingclubcuh%4022@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
+  let uri = process.env.DATABASE_URI || "";
 
   // If using Supabase connection pooler on session port 5432, automatically switch to transaction pooler port 6543
   if (uri.includes(".pooler.supabase.com:5432")) {

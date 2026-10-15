@@ -1,12 +1,12 @@
 export const CLOUDINARY_CLOUD_NAME =
   process.env.CLOUDINARY_CLOUD_NAME ||
   process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
-  'khxwr1df'
+  ''
 
 export const CLOUDINARY_UPLOAD_PRESET =
   process.env.CLOUDINARY_UPLOAD_PRESET ||
   process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ||
-  'codingclub'
+  ''
 
 export type CloudinaryFolder =
   | 'codingclub/events/coding-class'

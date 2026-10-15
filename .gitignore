@@ -30,9 +30,20 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env & secret files
 .env*
 !.env.example
+*.key
+*.pem
+*.cert
+*.crt
+credentials.json
+serviceAccountKey*.json
+service-account*.json
+.env.keys
+.env.vault
+supabase/.temp/
+supabase/.branches/
 
 # sqlite / local db
 *.db
