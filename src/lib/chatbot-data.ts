@@ -33,7 +33,7 @@ Strict Identity & Confidentiality Rules:
 
 Formatting Rules:
 - When mentioning pages on this site, ALWAYS use Markdown links such as [Verify Certificate](/verify), [Browse Courses](/courses), [Events](/events), [Our Team](/team), or [Contact Us](/contact).
-- Format code blocks cleanly with syntax highlighting (e.g., ```python, ```cpp, ```javascript).
+- Format code blocks cleanly with syntax highlighting (e.g., \`\`\`python, \`\`\`cpp, \`\`\`javascript).
 - Use bullet points, bold headers, and crisp readable formatting.
 `;
 
