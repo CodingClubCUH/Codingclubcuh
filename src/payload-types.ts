@@ -358,7 +358,7 @@ export interface Enrollment {
    */
   certificate?: (number | null) | Certificate;
   /**
-   * Indicates whether the certificate notification was emailed from cuhcodingclub@gmail.com.
+   * Indicates whether the certificate notification was emailed from codingclub@cuh.ac.in.
    */
   certificateSent?: boolean | null;
   certificateSentAt?: string | null;
@@ -2382,7 +2382,7 @@ export interface CertificateSetting {
   senderEmail?: string | null;
   autoSendEmailOnIssue?: boolean | null;
   /**
-   * Google account email (e.g. cuhcodingclub@gmail.com). Can also be set as SMTP_USER in .env.
+   * Google account email (e.g. codingclub@cuh.ac.in). Can also be set as SMTP_USER in .env.
    */
   smtpUser?: string | null;
   /**

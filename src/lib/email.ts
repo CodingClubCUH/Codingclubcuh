@@ -20,8 +20,8 @@ export async function sendCertificateEmail({
     ? process.env.NEXT_PUBLIC_SERVER_URL
     : 'https://codingclubcuh.online',
 }: SendCertificateEmailParams): Promise<{ success: boolean; simulated?: boolean; messageId?: string; error?: string }> {
-  let fromEmail = process.env.SMTP_FROM || '"Coding Club CUH" <cuhcodingclub@gmail.com>'
-  let smtpUser = process.env.SMTP_USER || 'cuhcodingclub@gmail.com'
+  let fromEmail = process.env.SMTP_FROM || '"Coding Club CUH" <codingclub@cuh.ac.in>'
+  let smtpUser = process.env.SMTP_USER || 'codingclub@cuh.ac.in'
   let smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || ''
   let smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com'
   let smtpPort = parseInt(process.env.SMTP_PORT || '465', 10)
@@ -271,7 +271,7 @@ export async function sendCertificateEmail({
           <!-- Footer -->
           <div class="footer" style="background-color: #0a0b10; padding: 24px 30px; text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.06); font-size: 12px; color: #64748b; line-height: 1.6;">
             <p style="margin: 0 0 6px;">Sent by <strong>Coding Club CUH</strong> &bull; Central University of Haryana, Mahendergarh, Haryana &bull; 123031</p>
-            <p style="margin: 0 0 6px;">Official Club Email: <a href="mailto:cuhcodingclub@gmail.com" style="color: #94a3b8; text-decoration: none;">cuhcodingclub@gmail.com</a></p>
+            <p style="margin: 0 0 6px;">Official Club Email: <a href="mailto:${smtpUser}" style="color: #94a3b8; text-decoration: none;">${smtpUser}</a></p>
             <p style="margin: 0;">&copy; ${new Date().getFullYear()} Coding Club CUH. All rights reserved.</p>
           </div>
 
@@ -301,7 +301,7 @@ export async function sendCertificateEmail({
 
   try {
     const cleanedPass = smtpPass.trim().replace(/\s+/g, '')
-    const isGmail = smtpHost.includes('gmail.com') || smtpUser.includes('@gmail.com')
+    const isGmail = smtpHost.includes('gmail.com') || smtpUser.includes('@gmail.com') || smtpUser.endsWith('@cuh.ac.in')
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transportConfig: any = isGmail

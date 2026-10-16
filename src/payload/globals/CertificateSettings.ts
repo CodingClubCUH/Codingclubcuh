@@ -84,7 +84,7 @@ export const CertificateSettings: GlobalConfig = {
                       name: 'senderEmail',
                       label: 'Certificate Sender Email',
                       type: 'email',
-                      defaultValue: 'cuhcodingclub@gmail.com',
+                      defaultValue: 'codingclub@cuh.ac.in',
                       admin: {
                         description: 'Email address shown as sender for certificate notifications.',
                       },
@@ -104,9 +104,9 @@ export const CertificateSettings: GlobalConfig = {
                       name: 'smtpUser',
                       label: 'SMTP Username / Sender Account',
                       type: 'email',
-                      defaultValue: 'cuhcodingclub@gmail.com',
+                      defaultValue: 'codingclub@cuh.ac.in',
                       admin: {
-                        description: 'Google account email (e.g. cuhcodingclub@gmail.com). Can also be set as SMTP_USER in .env.',
+                        description: 'Google account email (e.g. codingclub@cuh.ac.in). Can also be set as SMTP_USER in .env.',
                       },
                     },
                     {

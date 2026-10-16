@@ -1057,7 +1057,7 @@ export default function CertificateHub() {
                                       disabled={isProcessing}
                                       className="ch-btn ch-btn-outline"
                                       style={{ padding: "6px 10px" }}
-                                      title="Resend email from cuhcodingclub@gmail.com"
+                                      title="Resend email from codingclub@cuh.ac.in"
                                     >
                                       {isProcessing ? (
                                         <RefreshCw size={12} className="animate-spin" />

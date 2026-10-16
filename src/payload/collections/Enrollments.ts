@@ -194,7 +194,7 @@ export const Enrollments: CollectionConfig = {
       defaultValue: false,
       admin: {
         position: 'sidebar',
-        description: 'Indicates whether the certificate notification was emailed from cuhcodingclub@gmail.com.',
+        description: 'Indicates whether the certificate notification was emailed from codingclub@cuh.ac.in.',
       },
     },
     {

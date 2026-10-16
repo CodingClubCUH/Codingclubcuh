@@ -14,7 +14,6 @@ import {
   ExternalLink,
   BookOpen,
   GraduationCap,
-  Sparkles,
   ArrowRight,
   CheckCircle2,
   Clock,

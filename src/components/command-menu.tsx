@@ -18,7 +18,6 @@ import {
   Moon,
   Github,
   X,
-  ExternalLink,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 

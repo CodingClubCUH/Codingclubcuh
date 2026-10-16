@@ -8,26 +8,33 @@ import { getPayload } from "payload";
 import React from "react";
 import PageHeader from "@/components/page-header";
 
-export const dynamic = "force-static";
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function Page() {
-  const payload = await getPayload({ config: configPromise });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let posts: any = { docs: [], totalDocs: 0, totalPages: 1, page: 1 };
 
-  const posts = await payload.find({
-    collection: "posts",
-    depth: 1,
-    limit: 12,
-    overrideAccess: false,
-    select: {
-      title: true,
-      slug: true,
-      categories: true,
-      description: true,
-      heroImage: true,
-      images: true,
-    },
-  });
+  try {
+    const payload = await getPayload({ config: configPromise });
+
+    posts = await payload.find({
+      collection: "posts",
+      depth: 1,
+      limit: 12,
+      overrideAccess: false,
+      select: {
+        title: true,
+        slug: true,
+        categories: true,
+        description: true,
+        heroImage: true,
+        images: true,
+      },
+    });
+  } catch (error) {
+    console.error("Error loading posts from CMS:", error);
+  }
 
   return (
     <section className="">

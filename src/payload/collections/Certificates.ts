@@ -14,7 +14,7 @@ export const Certificates: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      async ({ data, req: { payload }, operation }) => {
+      async ({ data, req: { payload } }) => {
         if (!data.issueDate) {
           data.issueDate = new Date().toISOString();
         }

@@ -9,13 +9,10 @@ import {
   Check,
   Award,
   BookOpen,
-  Calendar,
-  ShieldCheck,
   CheckCircle2,
   ArrowRight,
   Filter,
   GraduationCap,
-  ExternalLink,
   Code2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,14 +30,13 @@ interface StudentDashboardClientProps {
   };
   certificates: Certificate[];
   enrollmentsCount: number;
-  upcomingEventsCount: number;
+  upcomingEventsCount?: number;
 }
 
 export function StudentDashboardClient({
   user,
   certificates,
   enrollmentsCount,
-  upcomingEventsCount,
 }: StudentDashboardClientProps) {
   const [filterType, setFilterType] = useState<string>("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);

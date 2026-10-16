@@ -9,7 +9,8 @@ import React from 'react'
 import PageClient from './page.client'
 import { notFound } from 'next/navigation'
 
-export const revalidate = 600
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 type Args = {
   params: Promise<{
@@ -19,19 +20,26 @@ type Args = {
 
 export default async function Page({ params: paramsPromise }: Args) {
   const { pageNumber } = await paramsPromise
-  const payload = await getPayload({ config: configPromise })
 
   const sanitizedPageNumber = Number(pageNumber)
 
   if (!Number.isInteger(sanitizedPageNumber)) notFound()
 
-  const posts = await payload.find({
-    collection: 'posts',
-    depth: 1,
-    limit: 12,
-    page: sanitizedPageNumber,
-    overrideAccess: false,
-  })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let posts: any = { docs: [], totalDocs: 0, totalPages: 1, page: sanitizedPageNumber }
+
+  try {
+    const payload = await getPayload({ config: configPromise })
+    posts = await payload.find({
+      collection: 'posts',
+      depth: 1,
+      limit: 12,
+      page: sanitizedPageNumber,
+      overrideAccess: false,
+    })
+  } catch (error) {
+    console.error(`Error loading posts page ${sanitizedPageNumber}:`, error)
+  }
 
   return (
     <div className="pt-24 pb-24">

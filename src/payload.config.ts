@@ -35,12 +35,23 @@ const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
 const getDatabaseURI = (): string => {
-  let uri = process.env.DATABASE_URI || "";
+  let uri =
+    process.env.DATABASE_URI ||
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    "";
 
   // If using Supabase connection pooler on session port 5432, automatically switch to transaction pooler port 6543
   if (uri.includes(".pooler.supabase.com:5432")) {
     uri = uri.replace(".pooler.supabase.com:5432", ".pooler.supabase.com:6543");
   }
+
+  if (!uri && process.env.NODE_ENV === "production") {
+    console.warn(
+      "[Payload Config] Warning: No database connection URI found in environment variables. Please ensure DATABASE_URI, DATABASE_URL, or POSTGRES_URL is configured in your deployment settings."
+    );
+  }
+
   return uri;
 };
 
@@ -268,13 +279,13 @@ export default buildConfig({
             "signature_instructor_id" integer,
             "signature_coordinator_id" integer,
             "signature_student_coordinator_id" integer,
-            "sender_email" varchar DEFAULT 'cuhcodingclub@gmail.com',
+            "sender_email" varchar DEFAULT 'codingclub@cuh.ac.in',
             "auto_send_email_on_issue" boolean DEFAULT true,
             "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
             "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
           );
 
-          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "smtp_user" varchar DEFAULT 'cuhcodingclub@gmail.com';
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "smtp_user" varchar DEFAULT 'codingclub@cuh.ac.in';
           ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "smtp_pass" varchar;
           ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "smtp_host" varchar DEFAULT 'smtp.gmail.com';
           ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "smtp_port" numeric DEFAULT 465;

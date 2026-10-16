@@ -2,7 +2,7 @@ import { getPayload } from "payload";
 import configPromise from "@payload-config";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Clock, FileText, Layers, Sparkles, BookOpen } from "lucide-react";
+import { ArrowRight, Clock, FileText, Layers, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 
