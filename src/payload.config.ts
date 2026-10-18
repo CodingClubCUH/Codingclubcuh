@@ -41,9 +41,10 @@ const getDatabaseURI = (): string => {
     process.env.POSTGRES_URL ||
     "";
 
-  // If using Supabase connection pooler on session port 5432, automatically switch to transaction pooler port 6543
-  if (uri.includes(".pooler.supabase.com:5432")) {
-    uri = uri.replace(".pooler.supabase.com:5432", ".pooler.supabase.com:6543");
+  // If using Supabase connection pooler on transaction port 6543, switch to session port 5432
+  // to support prepared statements required by Drizzle ORM and Payload CMS
+  if (uri.includes(".pooler.supabase.com:6543")) {
+    uri = uri.replace(".pooler.supabase.com:6543", ".pooler.supabase.com:5432");
   }
 
   if (!uri && process.env.NODE_ENV === "production") {
@@ -290,6 +291,18 @@ export default buildConfig({
           ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "smtp_host" varchar DEFAULT 'smtp.gmail.com';
           ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "smtp_port" numeric DEFAULT 465;
 
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_base_height" numeric DEFAULT 95;
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_scale" numeric DEFAULT 130;
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_instructor_scale" numeric DEFAULT 130;
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_instructor_offset_y" numeric DEFAULT 0;
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_instructor_offset_x" numeric DEFAULT 0;
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_coordinator_scale" numeric DEFAULT 130;
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_coordinator_offset_y" numeric DEFAULT 0;
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_coordinator_offset_x" numeric DEFAULT 0;
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_student_coordinator_scale" numeric DEFAULT 130;
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_student_coordinator_offset_y" numeric DEFAULT 0;
+          ALTER TABLE "certificate_settings" ADD COLUMN IF NOT EXISTS "signature_student_coordinator_offset_x" numeric DEFAULT 0;
+
           ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "department" varchar;
           ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "course" varchar;
           ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "semester" varchar;
@@ -329,6 +342,26 @@ export default buildConfig({
           END $$;
           ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "image_orientation" "enum_events_image_orientation" DEFAULT 'landscape';
           ALTER TABLE "media" ADD COLUMN IF NOT EXISTS "folder" varchar DEFAULT 'gallery/2026';
+
+          CREATE TABLE IF NOT EXISTS "users_sessions" (
+            "_order" integer NOT NULL,
+            "_parent_id" integer NOT NULL,
+            "id" varchar PRIMARY KEY NOT NULL,
+            "created_at" timestamp(3) with time zone DEFAULT now(),
+            "expires_at" timestamp(3) with time zone NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS "users_sessions_order_idx" ON "users_sessions" USING btree ("_order");
+          CREATE INDEX IF NOT EXISTS "users_sessions_parent_id_idx" ON "users_sessions" USING btree ("_parent_id");
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM pg_constraint WHERE conname = 'users_sessions_parent_id_fk'
+            ) THEN
+              ALTER TABLE "users_sessions" ADD CONSTRAINT "users_sessions_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+            END IF;
+          EXCEPTION
+            WHEN others THEN null;
+          END $$;
         `;
       if (db?.pool?.query) {
         await db.pool.query(schemaSql);

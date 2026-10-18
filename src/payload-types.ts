@@ -2365,17 +2365,52 @@ export interface Footer {
 export interface CertificateSetting {
   id: number;
   /**
-   * Digital signature image for Program Instructor (PNG with transparent background recommended).
+   * Digital signature image for Convener (Dr. Sunil Kumar) (PNG with transparent background recommended).
    */
   signatureInstructor?: (number | null) | Media;
   /**
-   * Digital signature image for Program Co-ordinator.
+   * Digital signature image for Co-convener (Dr. Prithi Maratha).
    */
   signatureCoordinator?: (number | null) | Media;
   /**
-   * Digital signature image for Student Co-ordinator.
+   * Digital signature image for Co-convener (Dr. Nitin Goyal).
    */
   signatureStudentCoordinator?: (number | null) | Media;
+  /**
+   * Default size multiplier for all signatures (130% = recommended large).
+   */
+  signatureScale?: number | null;
+  /**
+   * Height in px of signature container box (default: 95px).
+   */
+  signatureBaseHeight?: number | null;
+  signatureInstructorScale?: number | null;
+  /**
+   * Positive moves down, negative moves up
+   */
+  signatureInstructorOffsetY?: number | null;
+  /**
+   * Positive moves right, negative moves left
+   */
+  signatureInstructorOffsetX?: number | null;
+  signatureCoordinatorScale?: number | null;
+  /**
+   * Positive moves down, negative moves up
+   */
+  signatureCoordinatorOffsetY?: number | null;
+  /**
+   * Positive moves right, negative moves left
+   */
+  signatureCoordinatorOffsetX?: number | null;
+  signatureStudentCoordinatorScale?: number | null;
+  /**
+   * Positive moves down, negative moves up
+   */
+  signatureStudentCoordinatorOffsetY?: number | null;
+  /**
+   * Positive moves right, negative moves left
+   */
+  signatureStudentCoordinatorOffsetX?: number | null;
   /**
    * Email address shown as sender for certificate notifications.
    */
@@ -2482,6 +2517,17 @@ export interface CertificateSettingsSelect<T extends boolean = true> {
   signatureInstructor?: T;
   signatureCoordinator?: T;
   signatureStudentCoordinator?: T;
+  signatureScale?: T;
+  signatureBaseHeight?: T;
+  signatureInstructorScale?: T;
+  signatureInstructorOffsetY?: T;
+  signatureInstructorOffsetX?: T;
+  signatureCoordinatorScale?: T;
+  signatureCoordinatorOffsetY?: T;
+  signatureCoordinatorOffsetX?: T;
+  signatureStudentCoordinatorScale?: T;
+  signatureStudentCoordinatorOffsetY?: T;
+  signatureStudentCoordinatorOffsetX?: T;
   senderEmail?: T;
   autoSendEmailOnIssue?: T;
   smtpUser?: T;

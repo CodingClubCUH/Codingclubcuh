@@ -22,6 +22,7 @@ import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from 
 import { RowLabel as RowLabel_ef1777998f20cb87d581e9fb460d55bb } from '@/payload/Header/RowLabel'
 import { RowLabel as RowLabel_b1d02ac03d11f7b38650c3919ff7a625 } from '@/payload/Footer/RowLabel'
 import { default as default_63506a7b74f17979b081400a743b05a4 } from '@/components/payload-admin/CertificateHub'
+import { default as default_fccaf3403daffe4090a096c8a0c7cdbd } from '@/components/payload-admin/SignatureAdjusterPreview'
 import { default as default_926d1bcf3718bb2f47ce4892fd93653c } from '@/components/payload-admin/StudentsHub'
 import { default as default_298f8f715285c5596d95d0a0d15a182b } from '@/components/payload-admin/GraphicsIcon'
 import { default as default_0885c076401d3d65068f2979e4d0e01e } from '@/components/payload-admin/GraphicsLogo'
@@ -56,6 +57,7 @@ export const importMap = {
   "@/payload/Header/RowLabel#RowLabel": RowLabel_ef1777998f20cb87d581e9fb460d55bb,
   "@/payload/Footer/RowLabel#RowLabel": RowLabel_b1d02ac03d11f7b38650c3919ff7a625,
   "@/components/payload-admin/CertificateHub#default": default_63506a7b74f17979b081400a743b05a4,
+  "@/components/payload-admin/SignatureAdjusterPreview#default": default_fccaf3403daffe4090a096c8a0c7cdbd,
   "@/components/payload-admin/StudentsHub#default": default_926d1bcf3718bb2f47ce4892fd93653c,
   "@/components/payload-admin/GraphicsIcon#default": default_298f8f715285c5596d95d0a0d15a182b,
   "@/components/payload-admin/GraphicsLogo#default": default_0885c076401d3d65068f2979e4d0e01e,

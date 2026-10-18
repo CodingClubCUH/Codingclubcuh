@@ -11,6 +11,34 @@ interface MediaObj {
   url?: string;
 }
 
+interface SignatureAdjustments {
+  signatureBaseHeight: number;
+  signatureScale: number;
+  signatureInstructorScale: number;
+  signatureInstructorOffsetY: number;
+  signatureInstructorOffsetX: number;
+  signatureCoordinatorScale: number;
+  signatureCoordinatorOffsetY: number;
+  signatureCoordinatorOffsetX: number;
+  signatureStudentCoordinatorScale: number;
+  signatureStudentCoordinatorOffsetY: number;
+  signatureStudentCoordinatorOffsetX: number;
+}
+
+const DEFAULT_SIG_SETTINGS: SignatureAdjustments = {
+  signatureBaseHeight: 95,
+  signatureScale: 130,
+  signatureInstructorScale: 130,
+  signatureInstructorOffsetY: 0,
+  signatureInstructorOffsetX: 0,
+  signatureCoordinatorScale: 130,
+  signatureCoordinatorOffsetY: 0,
+  signatureCoordinatorOffsetX: 0,
+  signatureStudentCoordinatorScale: 130,
+  signatureStudentCoordinatorOffsetY: 0,
+  signatureStudentCoordinatorOffsetX: 0,
+};
+
 interface CertificateData {
   certificateId: string;
   studentName: string;
@@ -47,6 +75,7 @@ export default function CertificateView() {
   const [scale, setScale] = useState(1);
   const [loading, setLoading] = useState(true);
   const [certData, setCertData] = useState<CertificateData | null>(null);
+  const [sigSettings, setSigSettings] = useState<SignatureAdjustments>(DEFAULT_SIG_SETTINGS);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isDownloadingPng, setIsDownloadingPng] = useState(false);
   const [error, setError] = useState(false);
@@ -76,11 +105,12 @@ export default function CertificateView() {
         if (data.docs && data.docs.length > 0) {
           const cert = data.docs[0];
           if (cert.isIssued) {
-            if (!cert.signatureInstructor || !cert.signatureCoordinator || !cert.signatureStudentCoordinator) {
-              try {
-                const settingsRes = await fetch("/api/globals/certificate-settings?depth=1");
+            try {
+              const settingsRes = await fetch("/api/globals/certificate-settings?depth=1");
+              if (settingsRes.ok) {
                 const settingsData = await settingsRes.json();
                 if (settingsData) {
+                  // Fall back signatures if not explicitly attached to document
                   if (!cert.signatureInstructor && settingsData.signatureInstructor) {
                     cert.signatureInstructor = settingsData.signatureInstructor;
                   }
@@ -90,10 +120,26 @@ export default function CertificateView() {
                   if (!cert.signatureStudentCoordinator && settingsData.signatureStudentCoordinator) {
                     cert.signatureStudentCoordinator = settingsData.signatureStudentCoordinator;
                   }
+
+                  // Load dynamic signature adjustments
+                  const globalScale = Number(settingsData.signatureScale) || 130;
+                  setSigSettings({
+                    signatureBaseHeight: Number(settingsData.signatureBaseHeight) || 95,
+                    signatureScale: globalScale,
+                    signatureInstructorScale: Number(settingsData.signatureInstructorScale) || globalScale,
+                    signatureInstructorOffsetY: Number(settingsData.signatureInstructorOffsetY) || 0,
+                    signatureInstructorOffsetX: Number(settingsData.signatureInstructorOffsetX) || 0,
+                    signatureCoordinatorScale: Number(settingsData.signatureCoordinatorScale) || globalScale,
+                    signatureCoordinatorOffsetY: Number(settingsData.signatureCoordinatorOffsetY) || 0,
+                    signatureCoordinatorOffsetX: Number(settingsData.signatureCoordinatorOffsetX) || 0,
+                    signatureStudentCoordinatorScale: Number(settingsData.signatureStudentCoordinatorScale) || globalScale,
+                    signatureStudentCoordinatorOffsetY: Number(settingsData.signatureStudentCoordinatorOffsetY) || 0,
+                    signatureStudentCoordinatorOffsetX: Number(settingsData.signatureStudentCoordinatorOffsetX) || 0,
+                  });
                 }
-              } catch {
-                // Ignore settings fetch error
               }
+            } catch (settingsErr) {
+              console.warn("Could not fetch global certificate settings:", settingsErr);
             }
             setCertData(cert);
           } else {
@@ -201,7 +247,7 @@ export default function CertificateView() {
     ctx.save();
     ctx.strokeStyle = "#156b54";
     ctx.lineWidth = 4.8;
-    const underlineHalf = Math.max(280, Math.min(520, certData!.studentName.length * 24));
+    const underlineHalf = Math.max(420, Math.min(660, certData!.studentName.length * 30 + 90));
     ctx.beginPath();
     ctx.moveTo(W / 2 - underlineHalf + 10, 765);
     ctx.lineTo(W / 2 + underlineHalf - 10, 765);
@@ -245,20 +291,47 @@ export default function CertificateView() {
     }
 
     if (qrImg && qrImg.complete && qrImg.naturalWidth > 0) {
-      ctx.drawImage(qrImg, W / 2 - 60, 1040, 120, 120);
+      ctx.drawImage(qrImg, W / 2 - 60, 1100, 120, 120);
     }
 
     // Certificate ID Below QR Code in Middle
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 22px 'Consolas', 'Courier New', monospace";
     ctx.letterSpacing = "0.5px";
-    ctx.fillText(`Certificate ID: ${certData!.certificateId}`, W / 2, 1195);
+    ctx.fillText(`Certificate ID: ${certData!.certificateId}`, W / 2, 1255);
 
-    // 9. Signatures (Large & Prominent)
+    // 9. Signatures (Large, Prominent & Proportional to Custom Adjustments)
     const sigConfigs = [
-      { obj: certData!.signatureInstructor, centerX: 390, lineX1: 170, lineX2: 610 },
-      { obj: certData!.signatureCoordinator, centerX: 1123, lineX1: 903, lineX2: 1343 },
-      { obj: certData!.signatureStudentCoordinator, centerX: 1840, lineX1: 1620, lineX2: 2060 },
+      {
+        obj: certData!.signatureInstructor,
+        centerX: 390,
+        lineX1: 170,
+        lineX2: 610,
+        scale: sigSettings.signatureInstructorScale,
+        offsetX: sigSettings.signatureInstructorOffsetX,
+        offsetY: sigSettings.signatureInstructorOffsetY,
+        title: "Convener (Dr. Sunil Kumar)",
+      },
+      {
+        obj: certData!.signatureCoordinator,
+        centerX: 1123,
+        lineX1: 903,
+        lineX2: 1343,
+        scale: sigSettings.signatureCoordinatorScale,
+        offsetX: sigSettings.signatureCoordinatorOffsetX,
+        offsetY: sigSettings.signatureCoordinatorOffsetY,
+        title: "Co-convener (Dr. Prithi Maratha)",
+      },
+      {
+        obj: certData!.signatureStudentCoordinator,
+        centerX: 1840,
+        lineX1: 1620,
+        lineX2: 2060,
+        scale: sigSettings.signatureStudentCoordinatorScale,
+        offsetX: sigSettings.signatureStudentCoordinatorOffsetX,
+        offsetY: sigSettings.signatureStudentCoordinatorOffsetY,
+        title: "Co-convener (Dr. Nitin Goyal)",
+      },
     ];
 
     for (const sig of sigConfigs) {
@@ -266,8 +339,28 @@ export default function CertificateView() {
         try {
           const sImg = await loadImage(sig.obj.url);
           if (sImg.complete && sImg.naturalWidth > 0) {
-            // Large signature dimensions: 420px wide by 150px tall
-            ctx.drawImage(sImg, sig.centerX - 210, 1285, 420, 150);
+            const scaleRatio = (sig.scale || 130) / 100;
+            const maxW = 240 * 2 * scaleRatio;
+            const maxH = (sigSettings.signatureBaseHeight || 95) * 2 * scaleRatio;
+
+            let drawW = sImg.naturalWidth;
+            let drawH = sImg.naturalHeight;
+            const aspect = drawW / drawH;
+
+            // Fit inside maximum dimensions while maintaining crisp aspect ratio
+            if (drawW > maxW) {
+              drawW = maxW;
+              drawH = drawW / aspect;
+            }
+            if (drawH > maxH) {
+              drawH = maxH;
+              drawW = drawH * aspect;
+            }
+
+            const drawX = sig.centerX + (sig.offsetX * 2) - (drawW / 2);
+            const drawY = 1445 + (sig.offsetY * 2) - drawH - 4;
+
+            ctx.drawImage(sImg, drawX, drawY, drawW, drawH);
           }
         } catch {
           // ignore
@@ -280,6 +373,12 @@ export default function CertificateView() {
       ctx.moveTo(sig.lineX1, 1445);
       ctx.lineTo(sig.lineX2, 1445);
       ctx.stroke();
+
+      // Designation & Name below line
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "bold 26px 'Plus Jakarta Sans', Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(sig.title, sig.centerX, 1495);
     }
 
     return canvas;
@@ -584,7 +683,7 @@ export default function CertificateView() {
                 <div
                   style={{
                     position: "absolute",
-                    top: "260px",
+                    top: "262px",
                     left: 0,
                     width: "100%",
                     textAlign: "center",
@@ -593,7 +692,7 @@ export default function CertificateView() {
                 >
                   <h3
                     style={{
-                      fontSize: "30px",
+                      fontSize: "36px",
                       fontWeight: "800",
                       color: "#0f2942",
                       textTransform: "uppercase",
@@ -662,7 +761,7 @@ export default function CertificateView() {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "4px",
-                      maxWidth: `${Math.max(280, Math.min(520, certData.studentName.length * 24))}px`,
+                      maxWidth: `${Math.max(420, Math.min(660, certData.studentName.length * 30 + 90))}px`,
                       marginLeft: "auto",
                       marginRight: "auto",
                       marginTop: "6px",
@@ -709,7 +808,7 @@ export default function CertificateView() {
                 <div
                   style={{
                     position: "absolute",
-                    top: "486px",
+                    top: "496px",
                     left: 0,
                     width: "100%",
                     textAlign: "center",
@@ -733,7 +832,7 @@ export default function CertificateView() {
                 <div
                   style={{
                     position: "absolute",
-                    top: "518px",
+                    top: "542px",
                     left: 0,
                     width: "100%",
                     display: "flex",
@@ -765,76 +864,157 @@ export default function CertificateView() {
                 </div>
 
                 {/* ── Signature Lines & Dynamic Images Above Titles ── */}
-                {/* Program Instructor (Left: Center at 195px) */}
+                {/* Convener (Dr. Sunil Kumar) (Left: Center at 195px) */}
                 <div
                   style={{
                     position: "absolute",
-                    bottom: "64px",
+                    bottom: "40px",
                     left: "75px",
                     width: "240px",
                     textAlign: "center",
                     zIndex: 10,
                   }}
                 >
-                  <div style={{ height: "76px", display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: "3px" }}>
+                  <div
+                    style={{
+                      height: `${sigSettings.signatureBaseHeight}px`,
+                      display: "flex",
+                      alignItems: "flex-end",
+                      justifyContent: "center",
+                      paddingBottom: "3px",
+                      transform: `translate(${sigSettings.signatureInstructorOffsetX}px, ${sigSettings.signatureInstructorOffsetY}px)`,
+                      transformOrigin: "bottom center",
+                    }}
+                  >
                     {certData.signatureInstructor?.url && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={certData.signatureInstructor.url}
-                        alt="Instructor Signature"
-                        style={{ maxHeight: "72px", maxWidth: "230px", objectFit: "contain" }}
+                        alt="Convener Signature"
+                        style={{
+                          maxHeight: `${Math.round(sigSettings.signatureBaseHeight * (sigSettings.signatureInstructorScale / 100))}px`,
+                          maxWidth: `${Math.round(240 * (sigSettings.signatureInstructorScale / 100))}px`,
+                          objectFit: "contain",
+                        }}
                       />
                     )}
                   </div>
                   <div style={{ borderTop: "1.8px solid #1e293b", width: "100%" }} />
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: "700",
+                      color: "#0f172a",
+                      margin: "7px 0 0 0",
+                      letterSpacing: "0.2px",
+                      whiteSpace: "nowrap",
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                    }}
+                  >
+                    Convener (Dr. Sunil Kumar)
+                  </p>
                 </div>
 
-                {/* Program Co-ordinator (Center: Center at 561px) */}
+                {/* Co-convener (Dr. Prithi Maratha) (Center: Center at 561px) */}
                 <div
                   style={{
                     position: "absolute",
-                    bottom: "64px",
+                    bottom: "40px",
                     left: "441px",
                     width: "240px",
                     textAlign: "center",
                     zIndex: 10,
                   }}
                 >
-                  <div style={{ height: "76px", display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: "3px" }}>
+                  <div
+                    style={{
+                      height: `${sigSettings.signatureBaseHeight}px`,
+                      display: "flex",
+                      alignItems: "flex-end",
+                      justifyContent: "center",
+                      paddingBottom: "3px",
+                      transform: `translate(${sigSettings.signatureCoordinatorOffsetX}px, ${sigSettings.signatureCoordinatorOffsetY}px)`,
+                      transformOrigin: "bottom center",
+                    }}
+                  >
                     {certData.signatureCoordinator?.url && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={certData.signatureCoordinator.url}
-                        alt="Coordinator Signature"
-                        style={{ maxHeight: "72px", maxWidth: "230px", objectFit: "contain" }}
+                        alt="Co-convener Signature"
+                        style={{
+                          maxHeight: `${Math.round(sigSettings.signatureBaseHeight * (sigSettings.signatureCoordinatorScale / 100))}px`,
+                          maxWidth: `${Math.round(240 * (sigSettings.signatureCoordinatorScale / 100))}px`,
+                          objectFit: "contain",
+                        }}
                       />
                     )}
                   </div>
                   <div style={{ borderTop: "1.8px solid #1e293b", width: "100%" }} />
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: "700",
+                      color: "#0f172a",
+                      margin: "7px 0 0 0",
+                      letterSpacing: "0.2px",
+                      whiteSpace: "nowrap",
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                    }}
+                  >
+                    Co-convener (Dr. Prithi Maratha)
+                  </p>
                 </div>
 
-                {/* Student Co-ordinator (Right: Center at 920px) */}
+                {/* Co-convener (Dr. Nitin Goyal) (Right: Center at 920px) */}
                 <div
                   style={{
                     position: "absolute",
-                    bottom: "64px",
+                    bottom: "40px",
                     left: "800px",
                     width: "240px",
                     textAlign: "center",
                     zIndex: 10,
                   }}
                 >
-                  <div style={{ height: "76px", display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: "3px" }}>
+                  <div
+                    style={{
+                      height: `${sigSettings.signatureBaseHeight}px`,
+                      display: "flex",
+                      alignItems: "flex-end",
+                      justifyContent: "center",
+                      paddingBottom: "3px",
+                      transform: `translate(${sigSettings.signatureStudentCoordinatorOffsetX}px, ${sigSettings.signatureStudentCoordinatorOffsetY}px)`,
+                      transformOrigin: "bottom center",
+                    }}
+                  >
                     {certData.signatureStudentCoordinator?.url && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={certData.signatureStudentCoordinator.url}
-                        alt="Student Coordinator Signature"
-                        style={{ maxHeight: "72px", maxWidth: "230px", objectFit: "contain" }}
+                        alt="Co-convener Signature"
+                        style={{
+                          maxHeight: `${Math.round(sigSettings.signatureBaseHeight * (sigSettings.signatureStudentCoordinatorScale / 100))}px`,
+                          maxWidth: `${Math.round(240 * (sigSettings.signatureStudentCoordinatorScale / 100))}px`,
+                          objectFit: "contain",
+                        }}
                       />
                     )}
                   </div>
                   <div style={{ borderTop: "1.8px solid #1e293b", width: "100%" }} />
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: "700",
+                      color: "#0f172a",
+                      margin: "7px 0 0 0",
+                      letterSpacing: "0.2px",
+                      whiteSpace: "nowrap",
+                      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+                    }}
+                  >
+                    Co-convener (Dr. Nitin Goyal)
+                  </p>
                 </div>
               </div>
               {/* ══════════════ END CERTIFICATE ══════════════ */}

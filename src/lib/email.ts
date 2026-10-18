@@ -1,4 +1,3 @@
-// @ts-expect-error - nodemailer module types
 import nodemailer from 'nodemailer'
 
 interface SendCertificateEmailParams {

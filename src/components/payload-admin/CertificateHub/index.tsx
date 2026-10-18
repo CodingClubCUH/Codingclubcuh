@@ -16,7 +16,9 @@ import {
   ShieldCheck,
   Users,
   AlertCircle,
+  Eye,
 } from "lucide-react";
+import SignatureAdjusterPreview from "@/components/payload-admin/SignatureAdjusterPreview";
 
 interface CourseBatch {
   id: string | number;
@@ -213,18 +215,21 @@ const HUB_STYLES = `
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(30, 41, 59, 0.5);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     text-align: left;
+    position: relative;
+    overflow: hidden;
   }
   .ch-course-card:hover {
     background: #1e293b;
-    border-color: rgba(255, 255, 255, 0.18);
-    transform: translateY(-1px);
+    border-color: rgba(16, 185, 129, 0.4);
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 0 15px rgba(16, 185, 129, 0.1);
   }
   .ch-course-card.active {
     background: rgba(16, 185, 129, 0.12);
     border-color: #10b981;
-    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2);
   }
   .ch-course-card-top {
     display: flex;
@@ -262,8 +267,11 @@ const HUB_STYLES = `
     font-weight: 600;
     cursor: pointer;
     border: none;
-    transition: all 0.15s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     text-decoration: none;
+  }
+  .ch-btn:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .ch-btn:disabled {
     opacity: 0.5;
@@ -276,7 +284,8 @@ const HUB_STYLES = `
   }
   .ch-btn-primary:hover:not(:disabled) {
     background: linear-gradient(135deg, #0f6249 0%, #059669 100%);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+    transform: translateY(-1px);
   }
   .ch-btn-outline {
     background: #1e293b;
@@ -285,7 +294,9 @@ const HUB_STYLES = `
   }
   .ch-btn-outline:hover:not(:disabled) {
     background: #334155;
+    border-color: rgba(255, 255, 255, 0.2);
     color: #ffffff !important;
+    transform: translateY(-1px);
   }
   .ch-btn-warning {
     background: rgba(245, 158, 11, 0.15);
@@ -430,6 +441,7 @@ export default function CertificateHub() {
   // Action states
   const [processingId, setProcessingId] = useState<string | number | null>(null);
   const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showAdjusterModal, setShowAdjusterModal] = useState(false);
 
   // 1. Fetch all courses summary
   const fetchCourses = async () => {
@@ -657,6 +669,20 @@ export default function CertificateHub() {
         </div>
 
         <div className="ch-header-actions">
+          <button
+            type="button"
+            onClick={() => setShowAdjusterModal(true)}
+            className="ch-btn ch-btn-outline"
+            style={{
+              background: "rgba(19, 117, 88, 0.2)",
+              borderColor: "rgba(16, 185, 129, 0.4)",
+              color: "#34d399",
+            }}
+            title="Preview live certificate and fine-tune signature sizes/positions"
+          >
+            <Eye size={16} />
+            <span>Preview & Adjust Signatures</span>
+          </button>
           <Link
             href="/admin/globals/certificate-settings"
             className="ch-btn ch-btn-outline"
@@ -1042,7 +1068,7 @@ export default function CertificateHub() {
                                 {s.hasCertificate ? (
                                   <>
                                     <Link
-                                      href={`/verify?id=${s.certificateId}`}
+                                      href={`/certificate/${s.certificateId}`}
                                       target="_blank"
                                       className="ch-btn ch-btn-outline"
                                       style={{ padding: "6px 10px" }}
@@ -1103,6 +1129,62 @@ export default function CertificateHub() {
           )}
         </div>
       </div>
+
+      {/* ── Signature Adjuster & Preview Modal ── */}
+      {showAdjusterModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.85)",
+            backdropFilter: "blur(8px)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAdjusterModal(false);
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "1320px",
+              maxHeight: "94vh",
+              overflowY: "auto",
+              backgroundColor: "#0b1120",
+              borderRadius: "20px",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.9)",
+              position: "relative",
+              padding: "20px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <Eye size={20} color="#34d399" />
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#ffffff" }}>
+                  Certificate Live Preview & Signature Sizing Manager
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAdjusterModal(false)}
+                className="ch-btn ch-btn-outline"
+                style={{ padding: "6px 14px", fontWeight: 700, borderColor: "rgba(255,255,255,0.2)" }}
+              >
+                ✕ Close Modal
+              </button>
+            </div>
+            <SignatureAdjusterPreview />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

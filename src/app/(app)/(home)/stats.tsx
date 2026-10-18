@@ -4,6 +4,7 @@ import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { SectionHeading } from "@/components/ui/section-heading";
 import Image from "next/image";
 import { Users, Calendar, Code2, Sparkles, Award, Quote, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function StatsSection() {
   const stats = [
@@ -52,12 +53,17 @@ export default function StatsSection() {
 
         {/* Bento Stats Row */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-16 mt-12">
-          {stats.map((stat) => {
+          {stats.map((stat, idx) => {
             const Icon = stat.icon;
             return (
-              <div
+              <motion.div
                 key={stat.label}
-                className="glass-card glass-card-hover group relative p-6 rounded-3xl flex flex-col justify-between"
+                initial={{ opacity: 0, y: 24, filter: "blur(4px)" }}
+                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                whileHover={{ y: -6, scale: 1.02 }}
+                className="glass-card glass-card-hover group relative p-6 rounded-3xl flex flex-col justify-between cursor-default"
               >
                 <div className="flex items-center justify-between mb-6">
                   <div className={`size-12 rounded-2xl bg-gradient-to-br ${stat.color} border flex items-center justify-center transition-transform group-hover:scale-110 shadow-xs`}>
@@ -78,13 +84,19 @@ export default function StatsSection() {
                   <h4 className="mt-1 font-semibold text-foreground text-sm">{stat.label}</h4>
                   <p className="text-xs text-muted-foreground mt-0.5">{stat.sublabel}</p>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
 
         {/* Bottom Split Bento: Excellence & Faculty Spotlight */}
-        <div className="grid gap-8 md:grid-cols-12 items-stretch">
+        <motion.div
+          initial={{ opacity: 0, y: 32 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.6 }}
+          className="grid gap-8 md:grid-cols-12 items-stretch"
+        >
           <div className="md:col-span-5 flex flex-col justify-between space-y-6">
             <div className="glass-card rounded-3xl p-8 shadow-lg flex flex-col justify-between h-full">
               <h3 className="text-2xl font-bold font-handjet text-foreground tracking-wide mb-3">
@@ -150,7 +162,7 @@ export default function StatsSection() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

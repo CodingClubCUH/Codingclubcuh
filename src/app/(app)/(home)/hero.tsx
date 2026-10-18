@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { CarouselPlugin } from "./carousel";
 import { BorderBeam } from "@/components/magicui/border-beam";
+import { FlipWords } from "@/components/ui/flip-words";
 
 export default function HeroSection() {
   const handleOpenAi = () => {
@@ -57,9 +58,13 @@ export default function HeroSection() {
             CODING CLUB CUH
           </h1>
 
-          <h2 className="mt-4 text-xl md:text-3xl font-semibold text-muted-foreground tracking-wide">
-            By Students. For Students.
-          </h2>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-1 text-xl md:text-3xl font-semibold text-muted-foreground tracking-wide">
+            <span>Empowering students with</span>
+            <FlipWords
+              words={["Open Source", "Competitive Coding", "Hackathons", "Tech Leadership", "Peer Innovation"]}
+              className="font-bold text-foreground dark:text-white"
+            />
+          </div>
 
           <TextEffect
             per="line"

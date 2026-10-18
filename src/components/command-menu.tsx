@@ -221,9 +221,10 @@ export function CommandMenu() {
         title="Command Menu (Ctrl+K)"
         aria-label="Open Command Menu"
       >
-        <Search className="size-3.5 group-hover:text-primary transition-colors" />
-        <span>Search or ask AI...</span>
-        <kbd className="inline-flex items-center gap-0.5 text-[10px] bg-background/80 px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground">
+        <Search className="size-3.5 group-hover:text-primary transition-colors flex-shrink-0" />
+        <span className="hidden xl:inline">Search or ask AI...</span>
+        <span className="inline xl:hidden">Search...</span>
+        <kbd className="inline-flex items-center gap-0.5 text-[10px] bg-background/80 px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground flex-shrink-0">
           <Command className="size-2.5" /> K
         </kbd>
       </button>

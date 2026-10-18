@@ -314,19 +314,19 @@ export const Certificates: CollectionConfig = {
       fields: [
         {
           name: 'signatureInstructor',
-          label: 'Program Instructor Signature',
+          label: 'Convener (Dr. Sunil Kumar) Signature',
           type: 'upload',
           relationTo: 'media',
         },
         {
           name: 'signatureCoordinator',
-          label: 'Program Co-ordinator Signature',
+          label: 'Co-convener (Dr. Prithi Maratha) Signature',
           type: 'upload',
           relationTo: 'media',
         },
         {
           name: 'signatureStudentCoordinator',
-          label: 'Student Co-ordinator Signature',
+          label: 'Co-convener (Dr. Nitin Goyal) Signature',
           type: 'upload',
           relationTo: 'media',
         },
