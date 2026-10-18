@@ -41,10 +41,10 @@ const getDatabaseURI = (): string => {
     process.env.POSTGRES_URL ||
     "";
 
-  // If using Supabase connection pooler on transaction port 6543, switch to session port 5432
-  // to support prepared statements required by Drizzle ORM and Payload CMS
-  if (uri.includes(".pooler.supabase.com:6543")) {
-    uri = uri.replace(".pooler.supabase.com:6543", ".pooler.supabase.com:5432");
+  // If using Supabase connection pooler on session port 5432, automatically switch to transaction pooler port 6543
+  // to prevent EMAXCONNSESSION (pool_size: 15 limit) in serverless environments
+  if (uri.includes(".pooler.supabase.com:5432")) {
+    uri = uri.replace(".pooler.supabase.com:5432", ".pooler.supabase.com:6543");
   }
 
   if (!uri && process.env.NODE_ENV === "production") {
@@ -129,9 +129,9 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: getDatabaseURI(),
-      max: process.env.NODE_ENV === "production" ? 4 : 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 30000,
+      max: process.env.NODE_ENV === "production" ? 2 : 10,
+      idleTimeoutMillis: 5000,
+      connectionTimeoutMillis: 10000,
     },
     push: false,
   }),
