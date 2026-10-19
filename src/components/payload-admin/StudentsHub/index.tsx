@@ -936,6 +936,14 @@ export default function StudentsHub() {
             {/* Modal Actions */}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
               <Link
+                href={`/student/details?studentId=${selectedStudent.id}`}
+                className="sh-btn sh-btn-secondary"
+                target="_blank"
+                style={{ background: 'rgba(56, 189, 248, 0.12)', borderColor: 'rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}
+              >
+                Edit Academic Details <ExternalLink size={14} />
+              </Link>
+              <Link
                 href={`/admin/collections/users/${selectedStudent.id}`}
                 className="sh-btn sh-btn-secondary"
                 target="_blank"

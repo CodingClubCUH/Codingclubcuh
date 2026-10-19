@@ -128,6 +128,8 @@ export interface Config {
     footer: Footer;
     'certificate-settings': CertificateSetting;
     students: Student;
+    'contact-hub': ContactHub;
+    notices: Notice;
     'site-settings': SiteSetting;
   };
   globalsSelect: {
@@ -135,6 +137,8 @@ export interface Config {
     footer: FooterSelect<false> | FooterSelect<true>;
     'certificate-settings': CertificateSettingsSelect<false> | CertificateSettingsSelect<true>;
     students: StudentsSelect<false> | StudentsSelect<true>;
+    'contact-hub': ContactHubSelect<false> | ContactHubSelect<true>;
+    notices: NoticesSelect<false> | NoticesSelect<true>;
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
   locale: null;
@@ -379,17 +383,17 @@ export interface User {
   role: 'admin' | 'student';
   name?: string | null;
   /**
-   * e.g. MCA, BCA, B.Tech CSE, M.Tech, etc.
+   * Official academic department at Central University of Haryana.
+   */
+  department?: string | null;
+  /**
+   * Official degree program or course. Automatically filtered by department.
    */
   course?: string | null;
   /**
-   * e.g. 1st Semester, 4th Semester, 2nd Year, Completed, etc.
+   * Academic semester standing.
    */
   semester?: string | null;
-  /**
-   * e.g. Computer Science and IT, Mathematics, etc.
-   */
-  department?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -1861,9 +1865,9 @@ export interface CategoriesSelect<T extends boolean = true> {
 export interface UsersSelect<T extends boolean = true> {
   role?: T;
   name?: T;
+  department?: T;
   course?: T;
   semester?: T;
-  department?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -2441,6 +2445,28 @@ export interface Student {
   createdAt?: string | null;
 }
 /**
+ * Inspect, filter, and reply to all student questions and inquiries submitted through our website contact form and online channels.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-hub".
+ */
+export interface ContactHub {
+  id: number;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Mass email announcer to select all registered student email addresses and broadcast official notices, workshop schedules, and updates at once.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notices".
+ */
+export interface Notice {
+  id: number;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * Global site configuration, student maintenance mode toggle, and club announcements.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2543,6 +2569,24 @@ export interface CertificateSettingsSelect<T extends boolean = true> {
  * via the `definition` "students_select".
  */
 export interface StudentsSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-hub_select".
+ */
+export interface ContactHubSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notices_select".
+ */
+export interface NoticesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function BeforeDashboard() {
   const [stats, setStats] = useState({
@@ -66,6 +67,20 @@ export default function BeforeDashboard() {
   };
 
   const quickShortcuts = [
+    {
+      label: "How People Contact Us",
+      icon: "📨",
+      href: "/admin/contact-hub",
+      color: "#f59e0b",
+      tag: "INQUIRIES",
+    },
+    {
+      label: "Student Notice Broadcast",
+      icon: "📢",
+      href: "/admin/notices",
+      color: "#3b82f6",
+      tag: "EMAIL ALL",
+    },
     {
       label: "Course Certificate Hub",
       icon: "🎓",
@@ -191,7 +206,30 @@ export default function BeforeDashboard() {
         }}
       >
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px" }}>
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "12px",
+                background: "linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.25))",
+                border: "1px solid rgba(59, 130, 246, 0.4)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                padding: "3px",
+                boxShadow: "0 0 16px rgba(59, 130, 246, 0.3)",
+              }}
+            >
+              <Image
+                src="/ccc_logo.png"
+                width={32}
+                height={32}
+                alt="Coding Club CUH"
+                style={{ objectFit: "contain" }}
+              />
+            </div>
             <h1
               style={{
                 margin: 0,

@@ -153,11 +153,25 @@ export const Users: CollectionConfig = {
       type: 'text',
     },
     {
+      name: 'department',
+      type: 'text',
+      label: 'Department',
+      admin: {
+        description: 'Official academic department at Central University of Haryana.',
+        components: {
+          Field: '@/components/payload-admin/AcademicFields/DepartmentSelectField#default',
+        },
+      },
+    },
+    {
       name: 'course',
       type: 'text',
       label: 'Course / Degree',
       admin: {
-        description: 'e.g. MCA, BCA, B.Tech CSE, M.Tech, etc.',
+        description: 'Official degree program or course. Automatically filtered by department.',
+        components: {
+          Field: '@/components/payload-admin/AcademicFields/CourseSelectField#default',
+        },
       },
     },
     {
@@ -165,15 +179,10 @@ export const Users: CollectionConfig = {
       type: 'text',
       label: 'Semester / Year',
       admin: {
-        description: 'e.g. 1st Semester, 4th Semester, 2nd Year, Completed, etc.',
-      },
-    },
-    {
-      name: 'department',
-      type: 'text',
-      label: 'Department',
-      admin: {
-        description: 'e.g. Computer Science and IT, Mathematics, etc.',
+        description: 'Academic semester standing.',
+        components: {
+          Field: '@/components/payload-admin/AcademicFields/SemesterSelectField#default',
+        },
       },
     },
   ],

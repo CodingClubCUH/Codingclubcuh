@@ -105,7 +105,7 @@ export default function ForgotPasswordPage() {
                         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="identifier" className="text-foreground">
-                                    University Email or Roll Number
+                                    Email or Roll Number
                                 </Label>
                                 <div className="relative">
                                     <Input

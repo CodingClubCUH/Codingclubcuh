@@ -347,3 +347,285 @@ export async function sendCertificateEmail({
     }
   }
 }
+
+export interface SendNoticeEmailParams {
+  to: string
+  studentName?: string
+  subject: string
+  noticeContent: string
+  category?: string
+  serverUrl?: string
+}
+
+export async function sendNoticeEmail({
+  to,
+  studentName = 'Student',
+  subject,
+  noticeContent,
+  category = 'Club Announcement',
+  serverUrl = (process.env.NEXT_PUBLIC_SERVER_URL && !process.env.NEXT_PUBLIC_SERVER_URL.includes('localhost'))
+    ? process.env.NEXT_PUBLIC_SERVER_URL
+    : 'https://codingclubcuh.online',
+}: SendNoticeEmailParams): Promise<{ success: boolean; simulated?: boolean; messageId?: string; error?: string }> {
+  let fromEmail = process.env.SMTP_FROM || '"Coding Club CUH" <codingclub@cuh.ac.in>'
+  let smtpUser = process.env.SMTP_USER || 'codingclub@cuh.ac.in'
+  let smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || ''
+  let smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com'
+  let smtpPort = parseInt(process.env.SMTP_PORT || '465', 10)
+
+  if (!smtpPass) {
+    try {
+      const { getPayload } = await import('payload')
+      const configPromise = (await import('@payload-config')).default
+      const payload = await getPayload({ config: configPromise })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const settings: any = await payload.findGlobal({ slug: 'certificate-settings' })
+      if (settings) {
+        if (settings.smtpPass) smtpPass = settings.smtpPass
+        if (settings.smtpUser) {
+          smtpUser = settings.smtpUser
+          fromEmail = settings.senderEmail ? `"Coding Club CUH" <${settings.senderEmail}>` : `"Coding Club CUH" <${smtpUser}>`
+        }
+        if (settings.smtpHost) smtpHost = settings.smtpHost
+        if (settings.smtpPort) smtpPort = parseInt(settings.smtpPort, 10)
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  const effectiveBaseUrl = (serverUrl && !serverUrl.includes('localhost'))
+    ? serverUrl
+    : 'https://codingclubcuh.online'
+  const studentDashboardUrl = `${effectiveBaseUrl}/student`
+
+  // Format paragraphs from plain text or markdown-style text
+  const formattedContent = noticeContent
+    .split(/\n\s*\n/)
+    .map((p) => `<p style="margin: 0 0 16px; line-height: 1.7; font-size: 15px; color: #cbd5e1;">${p.replace(/\n/g, '<br />')}</p>`)
+    .join('')
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0c10; color: #e2e8f0;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0b0c10; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #12141c; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; overflow: hidden; text-align: left;">
+          
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #38bdf8 100%); padding: 32px 28px; text-align: center;">
+            <img src="${effectiveBaseUrl}/ccc_logo.png" width="52" height="52" alt="Coding Club CUH" style="display: block; margin: 0 auto 12px; border-radius: 12px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));" />
+            <div style="display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 700; color: #ffffff; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px;">
+              ${category}
+            </div>
+            <h1 style="margin: 6px 0 0; color: #ffffff; font-size: 22px; font-weight: 800; line-height: 1.3;">
+              Coding Club CUH
+            </h1>
+            <p style="margin: 4px 0 0; color: rgba(255, 255, 255, 0.85); font-size: 13px;">
+              Central University of Haryana &bull; Official Student Notice
+            </p>
+          </div>
+
+          <!-- Body Content -->
+          <div style="padding: 28px 28px 20px;">
+            <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <h2 style="margin: 0 0 6px; font-size: 20px; font-weight: 700; color: #f8fafc;">
+                ${subject}
+              </h2>
+              <p style="margin: 0; font-size: 13px; color: #94a3b8;">
+                Published on: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+
+            <p style="margin: 0 0 16px; font-size: 15px; font-weight: 600; color: #f1f5f9;">
+              Dear ${studentName},
+            </p>
+
+            ${formattedContent}
+
+            <!-- CTA -->
+            <div style="text-align: center; margin: 32px 0 20px;">
+              <a href="${studentDashboardUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff !important; text-decoration: none; padding: 12px 30px; border-radius: 10px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+                Go to Student Portal &rarr;
+              </a>
+            </div>
+
+            <p style="font-size: 13px; color: #64748b; margin-top: 24px; text-align: center; line-height: 1.5;">
+              If you have any questions regarding this notice, reply directly to this email or reach us through the website contact desk.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #0a0b10; padding: 20px 28px; text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.06); font-size: 12px; color: #64748b; line-height: 1.6;">
+            <p style="margin: 0 0 4px;">Sent by <strong>Coding Club CUH</strong> &bull; Central University of Haryana, Mahendergarh, Haryana &bull; 123031</p>
+            <p style="margin: 0;">Official Contact: <a href="mailto:${smtpUser}" style="color: #94a3b8; text-decoration: none;">${smtpUser}</a></p>
+          </div>
+
+        </div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`
+
+  if (!smtpPass || !smtpPass.trim()) {
+    console.warn(`[NOTICE EMAIL SIMULATED] To: ${to} | Subject: ${subject} (No SMTP password set)`)
+    return {
+      success: true,
+      simulated: true,
+      messageId: `simulated-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+    }
+  }
+
+  try {
+    const cleanedPass = smtpPass.trim().replace(/\s+/g, '')
+    const isGmail = smtpHost.includes('gmail.com') || smtpUser.includes('@gmail.com') || smtpUser.endsWith('@cuh.ac.in')
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const transportConfig: any = isGmail
+      ? {
+          service: 'gmail',
+          auth: {
+            user: smtpUser,
+            pass: cleanedPass,
+          },
+        }
+      : {
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpPort === 465,
+          auth: {
+            user: smtpUser,
+            pass: cleanedPass,
+          },
+          tls: {
+            rejectUnauthorized: false,
+          },
+        }
+
+    const transporter = nodemailer.createTransport(transportConfig)
+
+    const info = await transporter.sendMail({
+      from: fromEmail,
+      to,
+      subject: `📢 ${subject} - Coding Club CUH`,
+      html,
+    })
+
+    return {
+      success: true,
+      messageId: info.messageId,
+    }
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err)
+    console.error(`[NOTICE EMAIL ERROR] Failed to send notice to ${to}:`, errorMessage)
+    return {
+      success: false,
+      error: errorMessage,
+    }
+  }
+}
+
+export interface SendContactReplyEmailParams {
+  to: string
+  recipientName: string
+  originalSubject: string
+  replyMessage: string
+  originalMessage: string
+}
+
+export async function sendContactReplyEmail({
+  to,
+  recipientName,
+  originalSubject,
+  replyMessage,
+  originalMessage,
+}: SendContactReplyEmailParams): Promise<{ success: boolean; simulated?: boolean; messageId?: string; error?: string }> {
+  let fromEmail = process.env.SMTP_FROM || '"Coding Club CUH" <codingclub@cuh.ac.in>'
+  let smtpUser = process.env.SMTP_USER || 'codingclub@cuh.ac.in'
+  let smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || ''
+  let smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com'
+  let smtpPort = parseInt(process.env.SMTP_PORT || '465', 10)
+
+  if (!smtpPass) {
+    try {
+      const { getPayload } = await import('payload')
+      const configPromise = (await import('@payload-config')).default
+      const payload = await getPayload({ config: configPromise })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const settings: any = await payload.findGlobal({ slug: 'certificate-settings' })
+      if (settings?.smtpPass) {
+        smtpPass = settings.smtpPass
+        if (settings.smtpUser) smtpUser = settings.smtpUser
+        if (settings.smtpHost) smtpHost = settings.smtpHost
+        if (settings.smtpPort) smtpPort = parseInt(settings.smtpPort, 10)
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  const baseUrl = (process.env.NEXT_PUBLIC_SERVER_URL && !process.env.NEXT_PUBLIC_SERVER_URL.includes('localhost'))
+    ? process.env.NEXT_PUBLIC_SERVER_URL
+    : 'https://codingclubcuh.online'
+
+  const subject = `Re: ${originalSubject} - Coding Club CUH Support`
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0c10; color: #e2e8f0; padding: 24px;">
+  <div style="max-width: 580px; margin: 0 auto; background-color: #12141c; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 28px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+      <img src="${baseUrl}/ccc_logo.png" width="40" height="40" alt="Coding Club CUH" style="border-radius: 10px;" />
+      <div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 18px; font-weight: 800;">Coding Club CUH Support</h2>
+        <p style="margin: 2px 0 0; color: #94a3b8; font-size: 12px;">Official Desk Reply &bull; Central University of Haryana</p>
+      </div>
+    </div>
+    <p>Dear ${recipientName},</p>
+    <div style="margin: 18px 0; padding: 16px; background: rgba(56, 189, 248, 0.08); border-left: 4px solid #38bdf8; border-radius: 6px; font-size: 15px; color: #f8fafc; line-height: 1.6;">
+      ${replyMessage.replace(/\n/g, '<br />')}
+    </div>
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 13px; color: #94a3b8;">
+      <p style="margin: 0 0 6px;"><strong>Your Original Message:</strong></p>
+      <blockquote style="margin: 0; padding: 8px 12px; background: rgba(255, 255, 255, 0.03); border-radius: 4px; font-style: italic; color: #64748b;">
+        ${originalMessage.replace(/\n/g, '<br />')}
+      </blockquote>
+    </div>
+    <p style="font-size: 12px; color: #64748b; margin-top: 24px; text-align: center;">
+      Coding Club CUH &bull; Central University of Haryana &bull; <a href="mailto:${smtpUser}" style="color: #38bdf8;">${smtpUser}</a>
+    </p>
+  </div>
+</body>
+</html>
+`
+
+  if (!smtpPass || !smtpPass.trim()) {
+    console.warn(`[REPLY EMAIL SIMULATED] To: ${to} | Subject: ${subject}`)
+    return { success: true, simulated: true, messageId: `simulated-reply-${Date.now()}` }
+  }
+
+  try {
+    const isGmail = smtpHost.includes('gmail.com') || smtpUser.includes('@gmail.com') || smtpUser.endsWith('@cuh.ac.in')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const transportConfig: any = isGmail
+      ? { service: 'gmail', auth: { user: smtpUser, pass: smtpPass.trim().replace(/\s+/g, '') } }
+      : { host: smtpHost, port: smtpPort, secure: smtpPort === 465, auth: { user: smtpUser, pass: smtpPass.trim().replace(/\s+/g, '') } }
+
+    const transporter = nodemailer.createTransport(transportConfig)
+    const info = await transporter.sendMail({ from: fromEmail, to, subject, html })
+    return { success: true, messageId: info.messageId }
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}
+

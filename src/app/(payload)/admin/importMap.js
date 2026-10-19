@@ -17,6 +17,9 @@ import { MetaDescriptionComponent as MetaDescriptionComponent_a8a977ebc872c5d5ea
 import { PreviewComponent as PreviewComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
 import { default as default_24d073d73669a1536945667f1908dccd } from '@/components/payload-admin/MultiImageUpload'
 import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { default as default_08efaf6f77e8571ffceb1b91007a95c0 } from '@/components/payload-admin/AcademicFields/DepartmentSelectField'
+import { default as default_d998b712f7a4fe581808065d969fa601 } from '@/components/payload-admin/AcademicFields/CourseSelectField'
+import { default as default_041941757eab3acefb39c6470a3cb6da } from '@/components/payload-admin/AcademicFields/SemesterSelectField'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { RowLabel as RowLabel_ef1777998f20cb87d581e9fb460d55bb } from '@/payload/Header/RowLabel'
@@ -24,6 +27,8 @@ import { RowLabel as RowLabel_b1d02ac03d11f7b38650c3919ff7a625 } from '@/payload
 import { default as default_63506a7b74f17979b081400a743b05a4 } from '@/components/payload-admin/CertificateHub'
 import { default as default_fccaf3403daffe4090a096c8a0c7cdbd } from '@/components/payload-admin/SignatureAdjusterPreview'
 import { default as default_926d1bcf3718bb2f47ce4892fd93653c } from '@/components/payload-admin/StudentsHub'
+import { default as default_347e345c770c69ec2c20984102dab241 } from '@/components/payload-admin/ContactHub'
+import { default as default_ba1559ab0d0cff9f851f3e79a7dca89d } from '@/components/payload-admin/NoticeBroadcast'
 import { default as default_298f8f715285c5596d95d0a0d15a182b } from '@/components/payload-admin/GraphicsIcon'
 import { default as default_0885c076401d3d65068f2979e4d0e01e } from '@/components/payload-admin/GraphicsLogo'
 import { default as default_b1113cd267685e4983b6a86ee5747b18 } from '@/components/payload-admin/Actions/Action'
@@ -52,6 +57,9 @@ export const importMap = {
   "@payloadcms/plugin-seo/client#PreviewComponent": PreviewComponent_a8a977ebc872c5d5ea7ee689724c0860,
   "@/components/payload-admin/MultiImageUpload#default": default_24d073d73669a1536945667f1908dccd,
   "@payloadcms/richtext-lexical/client#HorizontalRuleFeatureClient": HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@/components/payload-admin/AcademicFields/DepartmentSelectField#default": default_08efaf6f77e8571ffceb1b91007a95c0,
+  "@/components/payload-admin/AcademicFields/CourseSelectField#default": default_d998b712f7a4fe581808065d969fa601,
+  "@/components/payload-admin/AcademicFields/SemesterSelectField#default": default_041941757eab3acefb39c6470a3cb6da,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@/payload/Header/RowLabel#RowLabel": RowLabel_ef1777998f20cb87d581e9fb460d55bb,
@@ -59,6 +67,8 @@ export const importMap = {
   "@/components/payload-admin/CertificateHub#default": default_63506a7b74f17979b081400a743b05a4,
   "@/components/payload-admin/SignatureAdjusterPreview#default": default_fccaf3403daffe4090a096c8a0c7cdbd,
   "@/components/payload-admin/StudentsHub#default": default_926d1bcf3718bb2f47ce4892fd93653c,
+  "@/components/payload-admin/ContactHub#default": default_347e345c770c69ec2c20984102dab241,
+  "@/components/payload-admin/NoticeBroadcast#default": default_ba1559ab0d0cff9f851f3e79a7dca89d,
   "@/components/payload-admin/GraphicsIcon#default": default_298f8f715285c5596d95d0a0d15a182b,
   "@/components/payload-admin/GraphicsLogo#default": default_0885c076401d3d65068f2979e4d0e01e,
   "@/components/payload-admin/Actions/Action#default": default_b1113cd267685e4983b6a86ee5747b18,

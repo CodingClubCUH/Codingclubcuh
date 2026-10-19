@@ -8,9 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  GraduationCap,
-  Building2,
-  Layers,
   ShieldCheck,
   CheckCircle2,
   Loader2,
@@ -20,6 +17,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AcademicDropdowns } from "@/components/student/AcademicDropdowns";
 
 function StudentDetailsForm() {
   const router = useRouter();
@@ -270,111 +268,17 @@ function StudentDetailsForm() {
                 </div>
               </div>
 
-              {/* Course text box */}
-              <div className="space-y-2">
-                <Label htmlFor="course" className="text-sm text-foreground flex items-center gap-1.5 font-medium">
-                  <GraduationCap size={16} className="text-primary" />
-                  Course / Degree Program <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  type="text"
-                  required
-                  id="course"
-                  placeholder="e.g. MCA, BCA, B.Tech CSE, M.Tech, etc."
-                  value={course}
-                  onChange={(e) => setCourse(e.target.value)}
-                  className="focus:ring-primary/50 focus:border-primary bg-background border-border text-foreground text-sm"
-                />
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] text-muted-foreground mr-1">Quick select:</span>
-                  {["B.Tech CSE", "MCA", "B.Sc IT", "M.Sc CS", "B.Tech ECE", "B.Tech EE"].map((c) => (
-                    <button
-                      type="button"
-                      key={c}
-                      onClick={() => setCourse(c)}
-                      className={`text-[10px] px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
-                        course === c
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-muted text-muted-foreground border-border hover:text-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Semester text box */}
-              <div className="space-y-2">
-                <Label htmlFor="semester" className="text-sm text-foreground flex items-center gap-1.5 font-medium">
-                  <Layers size={16} className="text-primary" />
-                  Semester / Academic Standing <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  type="text"
-                  required
-                  id="semester"
-                  placeholder="e.g. 1st Semester, 4th Semester, 2nd Year, Completed"
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                  className="focus:ring-primary/50 focus:border-primary bg-background border-border text-foreground text-sm"
-                />
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] text-muted-foreground mr-1">Quick select:</span>
-                  {["1st Sem", "2nd Sem", "3rd Sem", "4th Sem", "5th Sem", "6th Sem", "7th Sem", "8th Sem"].map((s) => (
-                    <button
-                      type="button"
-                      key={s}
-                      onClick={() => setSemester(s)}
-                      className={`text-[10px] px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
-                        semester === s
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-muted text-muted-foreground border-border hover:text-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Department text box */}
-              <div className="space-y-2">
-                <Label htmlFor="department" className="text-sm text-foreground flex items-center gap-1.5 font-medium">
-                  <Building2 size={16} className="text-primary" />
-                  Department <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  type="text"
-                  required
-                  id="department"
-                  placeholder="e.g. Computer Science and IT"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  className="focus:ring-primary/50 focus:border-primary bg-background border-border text-foreground text-sm"
-                />
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] text-muted-foreground mr-1">Quick select:</span>
-                  {[
-                    "Computer Science and IT",
-                    "School of Engineering & Tech",
-                    "Vocational Studies",
-                  ].map((d) => (
-                    <button
-                      type="button"
-                      key={d}
-                      onClick={() => setDepartment(d)}
-                      className={`text-[10px] px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
-                        department === d
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-muted text-muted-foreground border-border hover:text-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Academic Dropdowns: Department, Course, Semester */}
+              <AcademicDropdowns
+                department={department}
+                setDepartment={setDepartment}
+                course={course}
+                setCourse={setCourse}
+                semester={semester}
+                setSemester={setSemester}
+                disabled={saving}
+                required
+              />
             </div>
 
             {/* Information Banner */}

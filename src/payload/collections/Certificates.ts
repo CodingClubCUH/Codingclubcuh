@@ -248,15 +248,25 @@ export const Certificates: CollectionConfig = {
       name: 'department',
       type: 'text',
       label: 'Department',
-      defaultValue: 'Computer Science and IT',
+      defaultValue: 'Computer Sciences & Information Technology',
       required: true,
+      admin: {
+        components: {
+          Field: '@/components/payload-admin/AcademicFields/DepartmentSelectField#default',
+        },
+      },
     },
     {
       name: 'course',
       type: 'text',
       label: 'Course',
-      defaultValue: 'MCA',
+      defaultValue: 'Master of Computer Applications (M.C.A.)',
       required: true,
+      admin: {
+        components: {
+          Field: '@/components/payload-admin/AcademicFields/CourseSelectField#default',
+        },
+      },
     },
     {
       name: 'semester',
@@ -264,6 +274,11 @@ export const Certificates: CollectionConfig = {
       label: 'Semester',
       defaultValue: '1st Semester',
       required: true,
+      admin: {
+        components: {
+          Field: '@/components/payload-admin/AcademicFields/SemesterSelectField#default',
+        },
+      },
     },
     {
       name: 'internship',

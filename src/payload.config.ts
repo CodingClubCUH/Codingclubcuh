@@ -25,6 +25,8 @@ import { Header } from "./payload/Header/config";
 import { Footer } from "./payload/Footer/config";
 import { CertificateSettings } from "./payload/globals/CertificateSettings";
 import { Students } from "./payload/globals/Students";
+import { ContactHub } from "./payload/globals/ContactHub";
+import { Notices } from "./payload/globals/Notices";
 import { SiteSettings } from "./payload/globals/SiteSettings";
 import { Courses } from "./payload/collections/Courses";
 import { Certificates } from "./payload/collections/Certificates";
@@ -170,7 +172,7 @@ export default buildConfig({
     "http://localhost:3001",
     process.env.NEXT_PUBLIC_SERVER_URL || "",
   ].filter(Boolean),
-  globals: [Header, Footer, CertificateSettings, Students, SiteSettings],
+  globals: [Header, Footer, CertificateSettings, Students, ContactHub, Notices, SiteSettings],
   plugins: [...plugins],
   secret:
     process.env.PAYLOAD_SECRET || "development-secret-key-for-local-testing",
@@ -333,6 +335,22 @@ export default buildConfig({
           );
           INSERT INTO "students" ("id")
             SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM "students" LIMIT 1);
+
+          CREATE TABLE IF NOT EXISTS "notices" (
+            "id" serial PRIMARY KEY,
+            "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+            "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+          );
+          INSERT INTO "notices" ("id")
+            SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM "notices" LIMIT 1);
+
+          CREATE TABLE IF NOT EXISTS "contact_hub" (
+            "id" serial PRIMARY KEY,
+            "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+            "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+          );
+          INSERT INTO "contact_hub" ("id")
+            SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM "contact_hub" LIMIT 1);
 
           DO $$
           BEGIN
