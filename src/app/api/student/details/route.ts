@@ -34,7 +34,18 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url)
     const queryStudentId = searchParams.get('studentId')
-    const isAdmin = user.role === 'admin' || user.email === 'ajays.sharma27@gmail.com'
+    const isAdmin = user.role === 'admin'
+
+    // Block non-admins during maintenance mode
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const siteSettings: any = await (payload as any).findGlobal({ slug: 'site-settings' }).catch(() => null)
+    if (siteSettings?.maintenanceMode && !isAdmin) {
+      return NextResponse.json(
+        { error: siteSettings?.maintenanceMessage || 'Student portal is currently offline for maintenance.' },
+        { status: 503 }
+      )
+    }
+
     const targetId = (isAdmin && queryStudentId) ? queryStudentId : user.id
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,7 +114,18 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}))
     const { course, semester, department, name, studentId } = body
 
-    const isAdmin = user.role === 'admin' || user.email === 'ajays.sharma27@gmail.com'
+    const isAdmin = user.role === 'admin'
+
+    // Block non-admins during maintenance mode
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const siteSettings: any = await (payload as any).findGlobal({ slug: 'site-settings' }).catch(() => null)
+    if (siteSettings?.maintenanceMode && !isAdmin) {
+      return NextResponse.json(
+        { error: siteSettings?.maintenanceMessage || 'Student portal is currently offline for maintenance.' },
+        { status: 503 }
+      )
+    }
+
     const targetUserId = (isAdmin && studentId) ? studentId : user.id
 
     if (!course || !course.trim()) {

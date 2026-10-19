@@ -33,7 +33,7 @@ async function checkIsAdmin(): Promise<{ isAdmin: boolean; user?: unknown }> {
     }
 
     if (!user) return { isAdmin: false }
-    const isAdmin = user.role === 'admin' || user.email === 'ajays.sharma27@gmail.com'
+    const isAdmin = user.role === 'admin'
     return { isAdmin, user }
   } catch {
     return { isAdmin: false }

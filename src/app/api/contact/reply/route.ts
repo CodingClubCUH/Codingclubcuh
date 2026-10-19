@@ -27,7 +27,7 @@ async function checkIsAdmin(): Promise<boolean> {
     }
 
     if (!user) return false
-    return user.role === 'admin' || user.email === 'ajays.sharma27@gmail.com'
+    return user.role === 'admin'
   } catch {
     return false
   }

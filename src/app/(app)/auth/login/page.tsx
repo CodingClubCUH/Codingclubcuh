@@ -54,7 +54,7 @@ export default function LoginPage() {
             const data = await res.json()
 
             if (res.ok && data.user) {
-                const isAdmin = data.user.role === 'admin' || data.user.email === 'ajays.sharma27@gmail.com'
+                const isAdmin = data.user.role === 'admin'
 
                 // If maintenance mode is ON and user is NOT admin: BLOCK LOGIN
                 if (maintenanceMode && !isAdmin) {

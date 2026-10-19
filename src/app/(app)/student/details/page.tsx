@@ -49,6 +49,10 @@ function StudentDetailsForm() {
             router.push(`/auth/login?redirect=/student/details${studentIdParam ? `?studentId=${studentIdParam}` : ''}`);
             return;
           }
+          if (res.status === 503) {
+            router.push('/student');
+            return;
+          }
           throw new Error("Failed to load details");
         }
         const data = await res.json();

@@ -65,7 +65,7 @@ export default async function StudentDashboard() {
     .catch(() => null)
 
   const isMaintenanceActive = Boolean(siteSettings?.maintenanceMode)
-  const isAdmin = user.role === 'admin' || user.email === 'ajays.sharma27@gmail.com'
+  const isAdmin = user.role === 'admin'
 
   if (isMaintenanceActive && !isAdmin) {
     return (

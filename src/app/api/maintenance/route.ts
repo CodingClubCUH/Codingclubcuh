@@ -63,8 +63,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const isAdmin =
-      user?.role === 'admin' || user?.email === 'ajays.sharma27@gmail.com'
+    const isAdmin = user?.role === 'admin'
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required.' },

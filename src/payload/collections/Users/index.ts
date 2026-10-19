@@ -5,9 +5,7 @@ import { authenticated } from '../../access/authenticated'
 
 const isAdmin = ({ req }: { req: { user?: User | null } }): boolean => {
   const user = req?.user;
-  if (user?.role === 'admin') return true;
-  if (user?.email === 'ajays.sharma27@gmail.com') return true;
-  return false;
+  return user?.role === 'admin';
 }
 
 export const Users: CollectionConfig = {

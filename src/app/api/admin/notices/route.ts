@@ -27,7 +27,7 @@ async function checkIsAdmin(): Promise<{ isAdmin: boolean; user?: { id?: string 
     }
 
     if (!user) return { isAdmin: false, user: null }
-    const isAdmin = user.role === 'admin' || user.email === 'ajays.sharma27@gmail.com'
+    const isAdmin = user.role === 'admin'
     return { isAdmin, user }
   } catch {
     return { isAdmin: false, user: null }
