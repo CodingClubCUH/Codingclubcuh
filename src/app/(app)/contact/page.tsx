@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import PageHeader from "@/components/page-header";
 import { toast } from "sonner";
-import { Send, CheckCircle2, Loader2, Mail, MessageSquare, Building, Sparkles } from "lucide-react";
+import { Send, CheckCircle2, Loader2, Mail, Building, Sparkles } from "lucide-react";
 
 export default function ContactSection() {
   const [name, setName] = useState("");

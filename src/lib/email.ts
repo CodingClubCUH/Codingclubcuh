@@ -549,7 +549,7 @@ export async function sendContactReplyEmail({
   replyMessage,
   originalMessage,
 }: SendContactReplyEmailParams): Promise<{ success: boolean; simulated?: boolean; messageId?: string; error?: string }> {
-  let fromEmail = process.env.SMTP_FROM || '"Coding Club CUH" <codingclub@cuh.ac.in>'
+  const fromEmail = process.env.SMTP_FROM || '"Coding Club CUH" <codingclub@cuh.ac.in>'
   let smtpUser = process.env.SMTP_USER || 'codingclub@cuh.ac.in'
   let smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || ''
   let smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com'

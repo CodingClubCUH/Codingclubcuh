@@ -1,14 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import {
   Mail,
   Search,
   MessageSquare,
-  CheckCircle2,
-  Clock,
   Trash2,
   RefreshCw,
   Send,
@@ -16,11 +13,8 @@ import {
   Bot,
   Globe,
   X,
-  AlertCircle,
   FileText,
   Download,
-  ShieldCheck,
-  CornerDownRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ContactMessage } from "@/lib/contactStorage";

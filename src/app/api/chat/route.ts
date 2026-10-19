@@ -101,7 +101,6 @@ export async function POST(req: NextRequest) {
         ];
 
         let generatedText: string | null = null;
-        let usedModel: string | null = null;
 
         for (const model of modelsToTry) {
           try {
@@ -134,7 +133,6 @@ export async function POST(req: NextRequest) {
 
               if (reply) {
                 generatedText = reply;
-                usedModel = model;
                 break;
               }
             } else {
