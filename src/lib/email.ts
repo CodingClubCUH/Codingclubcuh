@@ -305,24 +305,24 @@ export async function sendCertificateEmail({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transportConfig: any = isGmail
       ? {
-          service: 'gmail',
-          auth: {
-            user: smtpUser,
-            pass: cleanedPass,
-          },
-        }
+        service: 'gmail',
+        auth: {
+          user: smtpUser,
+          pass: cleanedPass,
+        },
+      }
       : {
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpPort === 465,
-          auth: {
-            user: smtpUser,
-            pass: cleanedPass,
-          },
-          tls: {
-            rejectUnauthorized: false,
-          },
-        }
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: cleanedPass,
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
+      }
 
     const transporter = nodemailer.createTransport(transportConfig)
 
@@ -492,24 +492,24 @@ export async function sendNoticeEmail({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transportConfig: any = isGmail
       ? {
-          service: 'gmail',
-          auth: {
-            user: smtpUser,
-            pass: cleanedPass,
-          },
-        }
+        service: 'gmail',
+        auth: {
+          user: smtpUser,
+          pass: cleanedPass,
+        },
+      }
       : {
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpPort === 465,
-          auth: {
-            user: smtpUser,
-            pass: cleanedPass,
-          },
-          tls: {
-            rejectUnauthorized: false,
-          },
-        }
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: cleanedPass,
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
+      }
 
     const transporter = nodemailer.createTransport(transportConfig)
 

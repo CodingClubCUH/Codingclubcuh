@@ -9,7 +9,7 @@ export async function POST(req: Request) {
 
     if (!identifier) {
       return NextResponse.json(
-        { error: 'Please provide your university email or roll number.' },
+        { error: 'Please provide your  email or roll number.' },
         { status: 400 },
       )
     }

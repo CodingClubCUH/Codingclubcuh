@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AcademicDropdowns } from "@/components/student/AcademicDropdowns";
+import { Loader2, UserPlus, ArrowRight } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -63,20 +64,21 @@ export default function SignupPage() {
         });
 
         if (loginRes.ok) {
-          router.push("/student/details?registered=true");
-          router.refresh();
+          window.location.href = "/student/details?registered=true";
+          return;
         } else {
-          router.push("/auth/login");
+          window.location.href = "/auth/login";
+          return;
         }
       } else {
         toast.error(
           data.errors?.[0]?.message ||
             "Failed to create account. Email or Roll No might already exist.",
         );
+        setLoading(false);
       }
     } catch {
       toast.error("An error occurred. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -202,10 +204,21 @@ export default function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full mt-4 bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 transition-opacity border-0"
+              className="w-full mt-4 bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 transition-opacity border-0 flex items-center justify-center gap-2 py-2.5 font-semibold text-sm shadow-md"
               disabled={loading}
             >
-              {loading ? "Registering..." : "Register"}
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin shrink-0" />
+                  <span>Creating Account & Signing In...</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus size={16} className="shrink-0" />
+                  <span>Register as Club Member</span>
+                  <ArrowRight size={14} className="shrink-0 opacity-70" />
+                </>
+              )}
             </Button>
           </div>
         </div>

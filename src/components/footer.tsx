@@ -88,14 +88,14 @@ export default function FooterSection() {
           {/* Contact Column */}
           <div className="md:col-span-2">
             <h3 className="font-semibold text-foreground mb-6 tracking-wider uppercase text-xs">
-              Contact
+              Contact Us
             </h3>
             <a
-              href="mailto:cuhcodingclub@gmail.com"
+              href="mailto:codingclub@cuh.ac.in"
               className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary text-sm transition-colors group"
             >
               <Mail className="w-4 h-4 group-hover:animate-pulse" />
-              <span>Email Us on cuhcodingclub@gmail.com</span>
+              <span>codingclub@cuh.ac.in</span>
             </a>
           </div>
         </div>
