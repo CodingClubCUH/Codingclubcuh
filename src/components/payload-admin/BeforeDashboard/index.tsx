@@ -68,11 +68,11 @@ export default function BeforeDashboard() {
 
   const quickShortcuts = [
     {
-      label: "How People Contact Us",
-      icon: "📨",
-      href: "/admin/contact-hub",
+      label: "Send Custom / Unregistered Email",
+      icon: "✉️",
+      href: "/admin/notices?tab=unregistered",
       color: "#f59e0b",
-      tag: "INQUIRIES",
+      tag: "NON-REGISTERED",
     },
     {
       label: "Student Notice Broadcast",
@@ -80,6 +80,13 @@ export default function BeforeDashboard() {
       href: "/admin/notices",
       color: "#3b82f6",
       tag: "EMAIL ALL",
+    },
+    {
+      label: "How People Contact Us",
+      icon: "📨",
+      href: "/admin/contact-hub",
+      color: "#f59e0b",
+      tag: "INQUIRIES",
     },
     {
       label: "Course Certificate Hub",

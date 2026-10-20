@@ -8,7 +8,12 @@ export interface SentNotice {
   category: string
   recipientsCount: number
   recipients: string[]
+  unregisteredCount?: number
+  registeredCount?: number
+  ctaText?: string
+  ctaUrl?: string
   sentBy?: string
+  senderEmail?: string
   status: 'sent' | 'partially_sent' | 'failed' | 'simulated'
   sentAt: string
   failedCount?: number

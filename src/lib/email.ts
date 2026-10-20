@@ -328,6 +328,7 @@ export async function sendCertificateEmail({
 
     const info = await transporter.sendMail({
       from: fromEmail,
+      replyTo: smtpUser,
       to,
       subject,
       html,
@@ -355,6 +356,9 @@ export interface SendNoticeEmailParams {
   noticeContent: string
   category?: string
   serverUrl?: string
+  ctaText?: string
+  ctaUrl?: string
+  isUnregistered?: boolean
 }
 
 export async function sendNoticeEmail({
@@ -366,6 +370,9 @@ export async function sendNoticeEmail({
   serverUrl = (process.env.NEXT_PUBLIC_SERVER_URL && !process.env.NEXT_PUBLIC_SERVER_URL.includes('localhost'))
     ? process.env.NEXT_PUBLIC_SERVER_URL
     : 'https://codingclubcuh.online',
+  ctaText,
+  ctaUrl,
+  isUnregistered = false,
 }: SendNoticeEmailParams): Promise<{ success: boolean; simulated?: boolean; messageId?: string; error?: string }> {
   let fromEmail = process.env.SMTP_FROM || '"Coding Club CUH" <codingclub@cuh.ac.in>'
   let smtpUser = process.env.SMTP_USER || 'codingclub@cuh.ac.in'
@@ -397,7 +404,18 @@ export async function sendNoticeEmail({
   const effectiveBaseUrl = (serverUrl && !serverUrl.includes('localhost'))
     ? serverUrl
     : 'https://codingclubcuh.online'
-  const studentDashboardUrl = `${effectiveBaseUrl}/student`
+
+  const defaultCtaUrl = isUnregistered
+    ? `${effectiveBaseUrl}/auth/signup`
+    : `${effectiveBaseUrl}/student`
+
+  const defaultCtaText = isUnregistered
+    ? 'Register & Join Coding Club CUH →'
+    : 'Go to Student Portal →'
+
+  const effectiveCtaUrl = ctaUrl?.trim() ? (ctaUrl.trim().startsWith('http') || ctaUrl.trim().startsWith('/') ? (ctaUrl.trim().startsWith('/') ? `${effectiveBaseUrl}${ctaUrl.trim()}` : ctaUrl.trim()) : `https://${ctaUrl.trim()}`) : defaultCtaUrl
+  const effectiveCtaText = ctaText?.trim() || defaultCtaText
+  const showUnregisteredBanner = Boolean(isUnregistered || effectiveCtaUrl.includes('/auth/signup'))
 
   // Format paragraphs from plain text or markdown-style text
   const formattedContent = noticeContent
@@ -450,10 +468,16 @@ export async function sendNoticeEmail({
 
             ${formattedContent}
 
+            ${showUnregisteredBanner ? `
+            <div style="margin: 22px 0; padding: 14px 16px; border-radius: 12px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); font-size: 13px; color: #93c5fd; line-height: 1.5;">
+              <strong style="color: #60a5fa;">💡 Note for Non-Registered Students:</strong> You have received this invitation as an official student of Central University of Haryana. Registering gives you full access to upcoming workshops, hackathons, and cryptographic certificates.
+            </div>
+            ` : ''}
+
             <!-- CTA -->
             <div style="text-align: center; margin: 32px 0 20px;">
-              <a href="${studentDashboardUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff !important; text-decoration: none; padding: 12px 30px; border-radius: 10px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
-                Go to Student Portal &rarr;
+              <a href="${effectiveCtaUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff !important; text-decoration: none; padding: 12px 30px; border-radius: 10px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+                ${effectiveCtaText}
               </a>
             </div>
 
@@ -513,10 +537,16 @@ export async function sendNoticeEmail({
 
     const transporter = nodemailer.createTransport(transportConfig)
 
+    const cleanSubject = subject.trim()
+    const finalSubject = /^[^\w\s]/.test(cleanSubject)
+      ? `${cleanSubject} - Coding Club CUH`
+      : `📢 ${cleanSubject} - Coding Club CUH`
+
     const info = await transporter.sendMail({
       from: fromEmail,
+      replyTo: smtpUser,
       to,
-      subject: `📢 ${subject} - Coding Club CUH`,
+      subject: finalSubject,
       html,
     })
 
@@ -622,7 +652,13 @@ export async function sendContactReplyEmail({
       : { host: smtpHost, port: smtpPort, secure: smtpPort === 465, auth: { user: smtpUser, pass: smtpPass.trim().replace(/\s+/g, '') } }
 
     const transporter = nodemailer.createTransport(transportConfig)
-    const info = await transporter.sendMail({ from: fromEmail, to, subject, html })
+    const info = await transporter.sendMail({
+      from: fromEmail,
+      replyTo: smtpUser,
+      to,
+      subject,
+      html,
+    })
     return { success: true, messageId: info.messageId }
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : String(err) }

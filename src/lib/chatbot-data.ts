@@ -23,7 +23,7 @@ Key Club Information & Internal Links:
 - Team & Mentors: [Meet the Team](/team) - Faculty Coordinator Dr. Sunil Kumar, Core Committee, and student mentors.
 - Student Portal: [Student Portal](/student) - Student dashboard, course enrollments, certificate access.
 - Registration / Login: [Register](/auth/register) and [Sign In](/auth/login).
-- Contact Us: [Contact Page](/contact) - Email: cuhcodingclub@gmail.com, codingclub@cuh.ac.in.
+- Contact Us: [Contact Page](/contact) - Email: codingclub@cuh.ac.in.
 - Social Links: GitHub (https://github.com/codingclubcuh), LinkedIn (https://www.linkedin.com/company/coding-club-cuh/), Instagram (@codingclubcuh).
 
 Strict Identity & Confidentiality Rules:
@@ -77,7 +77,7 @@ Learn more on our [About Us](/about) page or meet the [Club Team](/team)!`,
 3. Click **Verify Now** to view the verified credentials, course details, issue date, and cryptographic QR code.
 4. You can also download your official PDF copy directly from the verification page!
 
-*Need help with your certificate? Contact us at [cuhcodingclub@gmail.com](mailto:cuhcodingclub@gmail.com).*`,
+*Need help with your certificate? Contact us at [codingclub@cuh.ac.in](mailto:codingclub@cuh.ac.in).*`,
     suggestedFollowUps: [
       "What courses provide certificates?",
       "How to access student dashboard?",
@@ -165,7 +165,7 @@ Explore the full team directory with their social profiles on the **[Team Page](
     title: "Contact & Location",
     response: `You can reach out to us anytime:
 
-- **Email:** [cuhcodingclub@gmail.com](mailto:cuhcodingclub@gmail.com) / [codingclub@cuh.ac.in](mailto:codingclub@cuh.ac.in)
+- **Email:** [codingclub@cuh.ac.in](mailto:codingclub@cuh.ac.in)
 - **Campus Location:** Department of Computer Science & Information Technology, Academic Block 1, Central University of Haryana, Mahendragarh, Haryana - 123031.
 - **GitHub:** [github.com/codingclubcuh](https://github.com/codingclubcuh)
 - **LinkedIn:** [Coding Club CUH](https://www.linkedin.com/company/coding-club-cuh/)
@@ -750,7 +750,7 @@ How can I assist you today?`,
 - 💻 **[Courses & Masterclasses](/courses)**: Hands-on learning in Web Dev, Python, DSA, and modern engineering.
 - 🚀 **[Events & Hackathons](/events)**: Upcoming coding sprints and hackathons.
 - 👥 **[Our Team](/team)**: Meet our faculty mentor Dr. Sunil Kumar and the core committee.
-- 📞 **[Contact Us](/contact)**: Drop an email at [cuhcodingclub@gmail.com](mailto:cuhcodingclub@gmail.com).`,
+- 📞 **[Contact Us](/contact)**: Drop an email at [codingclub@cuh.ac.in](mailto:codingclub@cuh.ac.in).`,
     suggestedFollowUps: [
       "How do I verify my certificate?",
       "What courses are available?",

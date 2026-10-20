@@ -94,7 +94,7 @@ export const Enrollments: CollectionConfig = {
             let certificateSent = false
             let certificateSentAt: string | undefined = undefined
 
-            // Send notification email from cuhcodingclub@gmail.com
+            // Send notification email from codingclub@cuh.ac.in
             if (student.email) {
               const emailResult = await sendCertificateEmail({
                 to: student.email,

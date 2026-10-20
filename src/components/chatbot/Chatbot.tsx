@@ -300,7 +300,7 @@ I am your **Coding Club CUH Assistant**. You can ask me **anything** — whether
         id: `assistant-${Date.now()}`,
         role: "assistant",
         content:
-          "⚠️ I'm having trouble connecting right now. Please explore our **[Certificate Verification](/verify)**, **[Courses](/courses)**, or contact us at **[cuhcodingclub@gmail.com](mailto:cuhcodingclub@gmail.com)**.",
+          "⚠️ I'm having trouble connecting right now. Please explore our **[Certificate Verification](/verify)**, **[Courses](/courses)**, or contact us at **[codingclub@cuh.ac.in](mailto:codingclub@cuh.ac.in)**.",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, errorMessage]);
