@@ -9,6 +9,7 @@ import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
 import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
 import { searchFields } from '@/payload/search/fieldOverrides'
 import { beforeSyncWithSearch } from '@/payload/search/beforeSync'
+import { authenticated } from '@/payload/access/authenticated'
 
 import { Page, Post } from '@/payload-types'
 import { getServerSideURL } from '@/payload/utilities/getURL'
@@ -65,6 +66,9 @@ export const plugins: Plugin[] = [
       admin: {
         group: 'System & Tools',
       },
+      access: {
+        delete: authenticated,
+      },
       fields: ({ defaultFields }) => {
         return defaultFields.map((field) => {
           if ('name' in field && field.name === 'confirmationMessage') {
@@ -88,6 +92,9 @@ export const plugins: Plugin[] = [
     formSubmissionOverrides: {
       admin: {
         group: 'System & Tools',
+      },
+      access: {
+        delete: authenticated,
       },
     },
   }),
