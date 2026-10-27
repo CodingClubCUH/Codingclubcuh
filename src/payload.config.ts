@@ -131,9 +131,9 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: getDatabaseURI(),
-      max: process.env.NODE_ENV === "production" ? 2 : 10,
+      max: 10,
       idleTimeoutMillis: 5000,
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 15000,
     },
     push: false,
   }),
@@ -184,6 +184,23 @@ export default buildConfig({
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = payload.db as any;
+      // Check if schema is already initialized to skip redundant heavy DDL on every cold start
+      let isInitialized = false;
+      try {
+        if (db?.pool?.query) {
+          const check = await db.pool.query(
+            `SELECT 1 FROM information_schema.tables WHERE table_name = 'users_sessions' LIMIT 1;`
+          );
+          isInitialized = (check.rowCount ?? 0) > 0;
+        }
+      } catch {
+        isInitialized = false;
+      }
+
+      if (isInitialized) {
+        return;
+      }
+
       const schemaSql = `
           ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "is_registration_open" boolean DEFAULT true;
           ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "registration_closed_message" varchar;
