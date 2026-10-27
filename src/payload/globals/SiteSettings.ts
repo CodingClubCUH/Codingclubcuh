@@ -1,12 +1,12 @@
 import type { GlobalConfig } from 'payload'
-import { authenticated } from '../access/authenticated'
+import { isAdmin } from '../access/isAdmin'
 
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Site Settings & Maintenance',
   access: {
     read: () => true,
-    update: authenticated,
+    update: isAdmin,
   },
   admin: {
     group: 'Administration',

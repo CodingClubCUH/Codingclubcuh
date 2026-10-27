@@ -2,6 +2,7 @@ import type { GlobalConfig } from 'payload'
 
 import { link } from '@/payload/fields/link'
 import { revalidateFooter } from './hooks/revalidateFooter'
+import { isAdmin } from '../access/isAdmin'
 
 export const Footer: GlobalConfig = {
   slug: 'footer',
@@ -10,6 +11,7 @@ export const Footer: GlobalConfig = {
   },
   access: {
     read: () => true,
+    update: isAdmin,
   },
   fields: [
     {

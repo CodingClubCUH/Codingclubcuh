@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import type { User } from '@/payload-types'
 
-import { authenticated } from '../../access/authenticated'
+import { isAdminOrSelf } from '../../access/isAdmin'
 
 const isAdmin = ({ req }: { req: { user?: User | null } }): boolean => {
   const user = req?.user;
@@ -14,8 +14,8 @@ export const Users: CollectionConfig = {
     admin: isAdmin,
     create: () => true, // Allow public signups
     delete: isAdmin,
-    read: authenticated,
-    update: authenticated,
+    read: isAdminOrSelf,
+    update: isAdminOrSelf,
   },
   admin: {
     defaultColumns: ['name', 'username', 'course', 'semester', 'department', 'role'],
@@ -45,6 +45,8 @@ export const Users: CollectionConfig = {
             })
 
             for (const cert of certs.docs) {
+              // Preserve immutability of already issued certificates
+              if (cert.isIssued) continue;
               await payload.update({
                 collection: 'certificates',
                 id: cert.id,

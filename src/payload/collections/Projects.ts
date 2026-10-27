@@ -1,7 +1,15 @@
 import type { CollectionConfig } from 'payload'
+import { anyone } from '../access/anyone'
+import { isAdmin } from '../access/isAdmin'
 
 export const Projects: CollectionConfig<'projects'> = {
   slug: 'projects',
+  access: {
+    read: anyone,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
+  },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'techStack', 'github'],

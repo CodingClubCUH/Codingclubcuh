@@ -1,7 +1,15 @@
 import type { CollectionConfig } from 'payload'
+import { anyone } from '../access/anyone'
+import { isAdmin } from '../access/isAdmin'
 
 export const Achievements: CollectionConfig<'achievements'> = {
   slug: 'achievements',
+  access: {
+    read: anyone,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'date'],

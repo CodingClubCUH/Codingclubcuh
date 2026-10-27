@@ -10,7 +10,7 @@ import {
 } from '@payloadcms/richtext-lexical'
 
 import { anyone } from '../access/anyone'
-import { authenticated } from '../access/authenticated'
+import { isAdmin } from '../access/isAdmin'
 import { CLOUDINARY_CLOUD_NAME, getCloudinaryTransformUrl, uploadToCloudinary } from '../utilities/cloudinary'
 
 const filename = fileURLToPath(import.meta.url)
@@ -19,10 +19,10 @@ const dirname = path.dirname(filename)
 export const Media: CollectionConfig = {
   slug: 'media',
   access: {
-    create: authenticated,
-    delete: authenticated,
+    create: isAdmin,
+    delete: isAdmin,
     read: anyone,
-    update: authenticated,
+    update: isAdmin,
   },
   admin: {
     useAsTitle: 'alt',

@@ -58,6 +58,19 @@ const getDatabaseURI = (): string => {
   return uri;
 };
 
+const getPayloadSecret = (): string => {
+  const secret = process.env.PAYLOAD_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "CRITICAL SECURITY ERROR: PAYLOAD_SECRET environment variable is missing in production. Please set PAYLOAD_SECRET in your production environment settings."
+      );
+    }
+    return "development-secret-key-for-local-testing";
+  }
+  return secret;
+};
+
 export default buildConfig({
   serverURL: getServerSideURL(),
   admin: {
@@ -159,8 +172,10 @@ export default buildConfig({
     "https://codingclubcuh.online",
     "https://www.codingclubcuh.online",
     "https://cuhcodingclub.netlify.app",
-    "http://localhost:3000",
-    "http://localhost:3001",
+    ...(process.env.NODE_ENV !== "production"
+      ? ["http://localhost:3000", "http://localhost:3001"]
+      : []),
+
     process.env.NEXT_PUBLIC_SERVER_URL || "",
   ].filter(Boolean),
   csrf: [
@@ -168,14 +183,16 @@ export default buildConfig({
     "https://codingclubcuh.online",
     "https://www.codingclubcuh.online",
     "https://cuhcodingclub.netlify.app",
-    "http://localhost:3000",
-    "http://localhost:3001",
+    ...(process.env.NODE_ENV !== "production"
+      ? ["http://localhost:3000", "http://localhost:3001"]
+      : []),
+
     process.env.NEXT_PUBLIC_SERVER_URL || "",
   ].filter(Boolean),
   globals: [Header, Footer, CertificateSettings, Students, ContactHub, Notices, SiteSettings],
   plugins: [...plugins],
   secret:
-    process.env.PAYLOAD_SECRET || "development-secret-key-for-local-testing",
+    getPayloadSecret(),
   sharp,
   typescript: {
     outputFile: path.resolve(dirname, "payload-types.ts"),

@@ -1,8 +1,16 @@
 import type { CollectionConfig } from 'payload'
 import { revalidatePath } from 'next/cache'
+import { anyone } from '../access/anyone'
+import { isAdmin } from '../access/isAdmin'
 
 export const Gallery: CollectionConfig<'gallery'> = {
   slug: 'gallery',
+  access: {
+    read: anyone,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
+  },
   admin: {
     useAsTitle: 'caption',
     defaultColumns: ['caption', 'category', 'showOnWebsite', 'updatedAt'],

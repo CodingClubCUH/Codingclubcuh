@@ -1,17 +1,17 @@
 import type { CollectionConfig } from 'payload'
 import { slugField } from '@/payload/fields/slug'
 import { anyone } from '../access/anyone'
-import { authenticated } from '../access/authenticated'
+import { isAdmin } from '../access/isAdmin'
 import { revalidateEvent, revalidateEventDelete } from './Events/hooks/revalidateEvent'
 import { getEffectiveEventStatus } from '../utilities/eventStatus'
 
 export const Events: CollectionConfig = {
   slug: 'events',
   access: {
-    create: authenticated,
-    delete: authenticated,
+    create: isAdmin,
+    delete: isAdmin,
     read: anyone,
-    update: authenticated,
+    update: isAdmin,
   },
   admin: {
     useAsTitle: 'title',

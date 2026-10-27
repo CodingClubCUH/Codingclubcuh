@@ -28,9 +28,44 @@ function formatMonthYear(dateString?: string | null): { batchLabel: string; mont
 // ─────────────────────────────────────────────────────────────────────────────
 // GET: Fetch Courses & Batches or Enrolled Students with Issuance Status
 // ─────────────────────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function authenticateAdmin(payload: any) {
+  const headersList = await headers()
+  const cookieStore = await cookies()
+  const token = cookieStore.get('payload-token')?.value
+
+  let authResult = await payload.auth({ headers: headersList })
+  let user = authResult.user
+
+  if (!user && token) {
+    try {
+      const customHeaders = new Headers(headersList)
+      customHeaders.set('Authorization', `JWT ${token}`)
+      authResult = await payload.auth({ headers: customHeaders })
+      user = authResult.user
+    } catch {
+      // Fallback failed
+    }
+  }
+
+  const isAdmin = user?.role === 'admin'
+  if (!user || !isAdmin) {
+    return null
+  }
+  return user
+}
+
 export async function GET(req: Request) {
   try {
     const payload = await getPayload({ config: configPromise })
+    const user = await authenticateAdmin(payload)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Only administrators can access certificate and student data.' },
+        { status: 403 }
+      )
+    }
+
     const { searchParams } = new URL(req.url)
     const courseId = searchParams.get('courseId')
 

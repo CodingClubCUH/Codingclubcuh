@@ -1,15 +1,15 @@
 import type { CollectionConfig } from 'payload'
 import { revalidatePath } from 'next/cache'
 import { anyone } from '../access/anyone'
-import { authenticated } from '../access/authenticated'
+import { isAdmin } from '../access/isAdmin'
 
 export const Teachers: CollectionConfig = {
   slug: 'teachers',
   access: {
     read: anyone,
-    create: authenticated,
-    update: authenticated,
-    delete: authenticated,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   admin: {
     useAsTitle: 'name',

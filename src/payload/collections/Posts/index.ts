@@ -8,7 +8,7 @@ import {
   lexicalEditor,
 } from "@payloadcms/richtext-lexical";
 
-import { authenticated } from "../../access/authenticated";
+import { isAdmin } from "../../access/isAdmin";
 import { authenticatedOrPublished } from "../../access/authenticatedOrPublished";
 import { populateAuthors } from "./hooks/populateAuthors";
 import { revalidateDelete, revalidatePost } from "./hooks/revalidatePost";
@@ -17,10 +17,10 @@ import { slugField } from "@/payload/fields/slug";
 export const Posts: CollectionConfig<"posts"> = {
   slug: "posts",
   access: {
-    create: authenticated,
-    delete: authenticated,
+    create: isAdmin,
+    delete: isAdmin,
     read: authenticatedOrPublished,
-    update: authenticated,
+    update: isAdmin,
   },
   defaultPopulate: {
     title: true,

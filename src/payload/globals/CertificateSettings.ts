@@ -1,12 +1,12 @@
 import type { GlobalConfig } from 'payload'
-import { authenticated } from '../access/authenticated'
+import { isAdmin, isAdminFieldLevel } from '../access/isAdmin'
 
 export const CertificateSettings: GlobalConfig = {
   slug: 'certificate-settings',
   label: 'Certificate Settings & Signatures',
   access: {
     read: () => true,
-    update: authenticated,
+    update: isAdmin,
   },
   admin: {
     group: 'Club Core',
@@ -231,6 +231,10 @@ export const CertificateSettings: GlobalConfig = {
                   fields: [
                     {
                       name: 'senderEmail',
+                      access: {
+                        read: isAdminFieldLevel,
+                        update: isAdminFieldLevel,
+                      },
                       label: 'Certificate Sender Email',
                       type: 'email',
                       defaultValue: 'codingclub@cuh.ac.in',
@@ -240,6 +244,10 @@ export const CertificateSettings: GlobalConfig = {
                     },
                     {
                       name: 'autoSendEmailOnIssue',
+                      access: {
+                        read: isAdminFieldLevel,
+                        update: isAdminFieldLevel,
+                      },
                       label: 'Automatically email certificate link upon generation',
                       type: 'checkbox',
                       defaultValue: true,
@@ -251,6 +259,10 @@ export const CertificateSettings: GlobalConfig = {
                   fields: [
                     {
                       name: 'smtpUser',
+                      access: {
+                        read: isAdminFieldLevel,
+                        update: isAdminFieldLevel,
+                      },
                       label: 'SMTP Username / Sender Account',
                       type: 'email',
                       defaultValue: 'codingclub@cuh.ac.in',
@@ -263,7 +275,8 @@ export const CertificateSettings: GlobalConfig = {
                       label: 'SMTP / Gmail App Password',
                       type: 'text',
                       access: {
-                        read: ({ req }) => Boolean(req.user),
+                        read: isAdminFieldLevel,
+                        update: isAdminFieldLevel,
                       },
                       admin: {
                         description: '16-character Google App Password (e.g. abcd efgh ijkl mnop). Required to send real emails to students. Can also be set as SMTP_PASS in .env.',
@@ -276,12 +289,20 @@ export const CertificateSettings: GlobalConfig = {
                   fields: [
                     {
                       name: 'smtpHost',
+                      access: {
+                        read: isAdminFieldLevel,
+                        update: isAdminFieldLevel,
+                      },
                       label: 'SMTP Server Host',
                       type: 'text',
                       defaultValue: 'smtp.gmail.com',
                     },
                     {
                       name: 'smtpPort',
+                      access: {
+                        read: isAdminFieldLevel,
+                        update: isAdminFieldLevel,
+                      },
                       label: 'SMTP Port',
                       type: 'number',
                       defaultValue: 465,

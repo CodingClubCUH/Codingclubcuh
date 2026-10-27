@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { anyone } from '../access/anyone'
+import { isAdmin } from '../access/isAdmin'
 import { sendCertificateEmail } from '@/lib/email'
 
 export const Certificates: CollectionConfig = {
@@ -11,6 +12,9 @@ export const Certificates: CollectionConfig = {
   },
   access: {
     read: anyone,
+    create: isAdmin,
+    update: isAdmin,
+    delete: isAdmin,
   },
   hooks: {
     beforeChange: [

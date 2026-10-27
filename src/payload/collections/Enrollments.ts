@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { authenticated } from '../access/authenticated'
+import { isAdmin, isAdminFieldLevel, isAdminOrStudentOwner, canCreateEnrollment } from '../access/isAdmin'
 import { sendCertificateEmail } from '@/lib/email'
 
 export const Enrollments: CollectionConfig = {
@@ -10,10 +10,10 @@ export const Enrollments: CollectionConfig = {
     description: 'Track student course registrations and select eligible students for certificate issuance and emailing.',
   },
   access: {
-    create: authenticated,
-    delete: authenticated,
-    read: authenticated,
-    update: authenticated,
+    create: canCreateEnrollment,
+    delete: isAdmin,
+    read: isAdminOrStudentOwner,
+    update: isAdmin,
   },
   hooks: {
     beforeValidate: [
@@ -157,6 +157,10 @@ export const Enrollments: CollectionConfig = {
       label: 'Enrollment Status',
       type: 'select',
       defaultValue: 'enrolled',
+      access: {
+        create: isAdminFieldLevel,
+        update: isAdminFieldLevel,
+      },
       required: true,
       options: [
         { label: 'Enrolled', value: 'enrolled' },
@@ -170,6 +174,10 @@ export const Enrollments: CollectionConfig = {
     },
     {
       name: 'selectedForCertificate',
+      access: {
+        create: isAdminFieldLevel,
+        update: isAdminFieldLevel,
+      },
       label: 'Selected for Certificate (Admin Decision)',
       type: 'checkbox',
       defaultValue: false,
@@ -179,6 +187,10 @@ export const Enrollments: CollectionConfig = {
     },
     {
       name: 'certificate',
+      access: {
+        create: isAdminFieldLevel,
+        update: isAdminFieldLevel,
+      },
       label: 'Issued Certificate',
       type: 'relationship',
       relationTo: 'certificates',
@@ -189,6 +201,10 @@ export const Enrollments: CollectionConfig = {
     },
     {
       name: 'certificateSent',
+      access: {
+        create: isAdminFieldLevel,
+        update: isAdminFieldLevel,
+      },
       label: 'Certificate Emailed to Student',
       type: 'checkbox',
       defaultValue: false,

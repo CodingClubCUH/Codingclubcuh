@@ -1,12 +1,12 @@
 import type { GlobalConfig } from 'payload'
-import { authenticated } from '../access/authenticated'
+import { isAdmin } from '../access/isAdmin'
 
 export const Notices: GlobalConfig = {
   slug: 'notices',
   label: 'Student Notice Broadcast (Email All)',
   access: {
-    read: authenticated,
-    update: authenticated,
+    read: isAdmin,
+    update: isAdmin,
   },
   admin: {
     group: 'Club Core',

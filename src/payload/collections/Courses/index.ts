@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { slugField } from '@/payload/fields/slug'
 import { anyone } from '../../access/anyone'
-import { authenticated } from '../../access/authenticated'
+import { isAdmin } from '../../access/isAdmin'
 
 export const Courses: CollectionConfig = {
   slug: 'courses',
@@ -12,10 +12,10 @@ export const Courses: CollectionConfig = {
     description: 'Manage educational courses and workshops conducted by Coding Club CUH.',
   },
   access: {
-    create: authenticated,
-    delete: authenticated,
+    create: isAdmin,
+    delete: isAdmin,
     read: anyone,
-    update: authenticated,
+    update: isAdmin,
   },
   fields: [
     {
