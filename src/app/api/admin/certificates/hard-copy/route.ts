@@ -8,14 +8,6 @@ import { uploadToCloudinary } from '@/payload/utilities/cloudinary'
 
 export const dynamic = 'force-dynamic'
 
-const ALLOWED_MIME_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/jpg',
-  'application/pdf',
-])
-
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024 // 25MB
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

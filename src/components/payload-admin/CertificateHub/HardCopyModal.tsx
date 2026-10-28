@@ -100,12 +100,6 @@ export default function HardCopyModal({
 
   const handleFileSelect = (selectedFile: File) => {
     setErrorMessage(null);
-    const validMimes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "application/pdf",
-    ];
     const isPdf =
       selectedFile.type === "application/pdf" ||
       selectedFile.name.toLowerCase().endsWith(".pdf");

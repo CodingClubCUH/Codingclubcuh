@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import {
   Award,
   Calendar,
@@ -454,11 +453,8 @@ const HUB_STYLES = `
 `;
 
 export default function CertificateHub() {
-  const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") === "hard-copy" ? "hard-copy" : "batches";
-
   // Tab mode: 'batches' | 'hard-copy'
-  const [activeHubTab, setActiveHubTab] = useState<"batches" | "hard-copy">(initialTab);
+  const [activeHubTab, setActiveHubTab] = useState<"batches" | "hard-copy">("batches");
 
   const [courses, setCourses] = useState<CourseBatch[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
@@ -535,6 +531,12 @@ export default function CertificateHub() {
   };
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("tab") === "hard-copy") {
+        setActiveHubTab("hard-copy");
+      }
+    }
     fetchCourses();
     fetchHardCopyCerts();
     // eslint-disable-next-line react-hooks/exhaustive-deps

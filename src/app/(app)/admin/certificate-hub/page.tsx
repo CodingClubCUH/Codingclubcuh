@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import CertificateHub from "@/components/payload-admin/CertificateHub";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -19,7 +19,9 @@ export default function CertificateHubPage() {
           <ArrowLeft size={16} /> Back to Admin Dashboard
         </Link>
       </div>
-      <CertificateHub />
+      <Suspense fallback={<div className="p-8 text-center text-slate-500 font-medium">Loading Certificate Hub...</div>}>
+        <CertificateHub />
+      </Suspense>
     </div>
   );
 }

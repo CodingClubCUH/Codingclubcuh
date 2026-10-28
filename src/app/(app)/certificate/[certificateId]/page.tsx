@@ -10,12 +10,8 @@ import {
   ArrowLeft,
   Image as ImageIcon,
   Loader2,
-  FileText,
   ExternalLink,
   CheckCircle,
-  Calendar,
-  User,
-  Award,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
