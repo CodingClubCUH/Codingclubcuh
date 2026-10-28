@@ -96,6 +96,13 @@ export default function BeforeDashboard() {
       tag: "AUTOMATED",
     },
     {
+      label: "Hard-Copy Certificate",
+      icon: "📜",
+      href: "/admin/certificate-hub?tab=hard-copy",
+      color: "#10b981",
+      tag: "+ UPLOAD",
+    },
+    {
       label: "Upload Signatures",
       icon: "✍️",
       href: "/admin/globals/certificate-settings",

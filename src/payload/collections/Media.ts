@@ -78,7 +78,12 @@ export const Media: CollectionConfig = {
             if (uploadResult.bytes) data.filesize = uploadResult.bytes
             if (uploadResult.width) data.width = uploadResult.width
             if (uploadResult.height) data.height = uploadResult.height
-            if (uploadResult.format) data.mimeType = `image/${uploadResult.format}`
+            if (uploadResult.format) {
+              data.mimeType =
+                uploadResult.format.toLowerCase() === 'pdf'
+                  ? 'application/pdf'
+                  : `image/${uploadResult.format}`
+            }
             if (!data.filename) {
               data.filename = `${uploadResult.public_id.split('/').pop()}.${uploadResult.format || 'jpg'}`
             }
@@ -120,7 +125,10 @@ export const Media: CollectionConfig = {
             doc.url = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/codingclub/${folder}/${doc.filename}`
           }
           if (doc.url.includes('res.cloudinary.com')) {
-            doc.thumbnailURL = getCloudinaryTransformUrl(doc.url, 'w_300,c_limit')
+            const isPdf = doc.url.toLowerCase().endsWith('.pdf') || (doc.mimeType && doc.mimeType.includes('pdf'));
+            if (!isPdf) {
+              doc.thumbnailURL = getCloudinaryTransformUrl(doc.url, 'w_300,c_limit');
+            }
           }
         }
         return doc

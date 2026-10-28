@@ -2,13 +2,30 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Download, Printer, ShieldCheck, XCircle, ArrowLeft, Image as ImageIcon, Loader2 } from "lucide-react";
+import {
+  Download,
+  Printer,
+  ShieldCheck,
+  XCircle,
+  ArrowLeft,
+  Image as ImageIcon,
+  Loader2,
+  FileText,
+  ExternalLink,
+  CheckCircle,
+  Calendar,
+  User,
+  Award,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import jsPDF from "jspdf";
 
 interface MediaObj {
   url?: string;
+  mimeType?: string;
+  filename?: string;
+  filesize?: number;
 }
 
 interface SignatureAdjustments {
@@ -50,6 +67,9 @@ interface CertificateData {
   endDate: string;
   issueDate: string;
   isIssued: boolean;
+  certificateType?: "digital" | "hard_copy";
+  hardCopyUrl?: string | null;
+  hardCopyFile?: MediaObj | string | number | null;
   signatureInstructor?: MediaObj | null;
   signatureCoordinator?: MediaObj | null;
   signatureStudentCoordinator?: MediaObj | null;
@@ -99,7 +119,7 @@ export default function CertificateView() {
     async function fetchCertificate() {
       try {
         const res = await fetch(
-          `/api/certificates?where[certificateId][equals]=${certificateId}&depth=1`
+          `/api/certificates?where[certificateId][equals]=${encodeURIComponent(certificateId)}&depth=1`
         );
         const data = await res.json();
         if (data.docs && data.docs.length > 0) {
@@ -141,7 +161,18 @@ export default function CertificateView() {
             } catch (settingsErr) {
               console.warn("Could not fetch global certificate settings:", settingsErr);
             }
-            setCertData(cert);
+
+            const hardCopyMedia =
+              typeof cert.hardCopyFile === "object" ? (cert.hardCopyFile as MediaObj) : null;
+            const resolvedHardCopyUrl = cert.hardCopyUrl || hardCopyMedia?.url || null;
+            const certType = cert.certificateType || (resolvedHardCopyUrl ? "hard_copy" : "digital");
+
+            setCertData({
+              ...cert,
+              certificateType: certType,
+              hardCopyUrl: resolvedHardCopyUrl,
+              hardCopyFile: hardCopyMedia || cert.hardCopyFile,
+            });
           } else {
             setError(true);
           }
@@ -194,7 +225,7 @@ export default function CertificateView() {
     canvas.height = H;
     const ctx = canvas.getContext("2d")!;
 
-    // 1. Draw Master Template Background (Matches User's Shared Design 100%)
+    // 1. Draw Master Template Background
     try {
       const bgImg = await loadImage("/certificate-template-clean.png");
       if (bgImg.complete && bgImg.naturalWidth > 0) {
@@ -208,12 +239,7 @@ export default function CertificateView() {
       ctx.fillRect(0, 0, W, H);
     }
 
-    // 1b. "CERTIFICATE OF COMPLETION" (Emerald Green & Charcoal - Prominent Large Font)
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#137558";
-    ctx.font = "900 126px 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif";
-    ctx.letterSpacing = "3px";
-    // 1b. "CERTIFICATE OF COMPLETION" (Emerald Green & Charcoal - Prominent Large Font)
+    // 1b. "CERTIFICATE OF COMPLETION"
     ctx.textAlign = "center";
     ctx.fillStyle = "#137558";
     ctx.font = "900 115px 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif";
@@ -225,25 +251,25 @@ export default function CertificateView() {
     ctx.letterSpacing = "6px";
     ctx.fillText("OF COMPLETION", W / 2, 455);
 
-    // 2. Programme Name (in Royal Navy Serif - Bigger Font)
+    // 2. Programme Name
     const programmeTitle = (certData!.internship || certData!.course || "PROFESSIONAL TRAINING PROGRAM").toUpperCase();
     ctx.fillStyle = "#0f2942";
     ctx.font = "800 58px 'Cinzel', 'Playfair Display', Georgia, serif";
     ctx.letterSpacing = "3px";
     ctx.fillText(programmeTitle, W / 2, 560);
 
-    // 3. "This is to certify that" (Bigger Font)
+    // 3. "This is to certify that"
     ctx.fillStyle = "#1e293b";
     ctx.font = "500 32px 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif";
     ctx.letterSpacing = "0px";
     ctx.fillText("This is to certify that", W / 2, 640);
 
-    // 4. Candidate Name (Emerald Green Serif - Bigger Font)
+    // 4. Candidate Name
     ctx.fillStyle = "#156b54";
     ctx.font = "700 90px 'Playfair Display', Georgia, serif";
     ctx.fillText(certData!.studentName, W / 2, 730);
 
-    // 5. Decorative Underline with Hollow Beads (Matching Sample o──────────o)
+    // 5. Decorative Underline with Hollow Beads (o──────────o)
     ctx.save();
     ctx.strokeStyle = "#156b54";
     ctx.lineWidth = 4.8;
@@ -264,7 +290,7 @@ export default function CertificateView() {
     ctx.stroke();
     ctx.restore();
 
-    // 6. Body Paragraph (Bigger Font)
+    // 6. Body Paragraph
     ctx.fillStyle = "#2d3748";
     ctx.font = "32px 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif";
     const line1 = `has successfully completed a professional training program conducted from ${formatDate(certData!.startDate)} to ${formatDate(certData!.endDate)}. His/Her`;
@@ -272,7 +298,7 @@ export default function CertificateView() {
     ctx.fillText(line1, W / 2, 855);
     ctx.fillText(line2, W / 2, 905);
 
-    // 7. Awarded on Date (Bigger Font)
+    // 7. Awarded on Date
     ctx.fillStyle = "#000000";
     ctx.font = "800 32px 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif";
     ctx.fillText(`Awarded on ${formatDate(certData!.issueDate)}`, W / 2, 995);
@@ -300,7 +326,7 @@ export default function CertificateView() {
     ctx.letterSpacing = "0.5px";
     ctx.fillText(`Certificate ID: ${certData!.certificateId}`, W / 2, 1255);
 
-    // 9. Signatures (Large, Prominent & Proportional to Custom Adjustments)
+    // 9. Signatures
     const sigConfigs = [
       {
         obj: certData!.signatureInstructor,
@@ -347,7 +373,6 @@ export default function CertificateView() {
             let drawH = sImg.naturalHeight;
             const aspect = drawW / drawH;
 
-            // Fit inside maximum dimensions while maintaining crisp aspect ratio
             if (drawW > maxW) {
               drawW = maxW;
               drawH = drawW / aspect;
@@ -366,7 +391,6 @@ export default function CertificateView() {
           // ignore
         }
       }
-      // Line directly above title
       ctx.strokeStyle = "#1e293b";
       ctx.lineWidth = 4.2;
       ctx.beginPath();
@@ -374,7 +398,6 @@ export default function CertificateView() {
       ctx.lineTo(sig.lineX2, 1445);
       ctx.stroke();
 
-      // Designation & Name below line
       ctx.fillStyle = "#0f172a";
       ctx.font = "bold 26px 'Plus Jakarta Sans', Arial, sans-serif";
       ctx.textAlign = "center";
@@ -384,7 +407,7 @@ export default function CertificateView() {
     return canvas;
   };
 
-  // Direct 1-Click PDF Generator
+  // Direct 1-Click PDF Generator (Digital)
   const downloadPdf = async () => {
     if (!certData) return;
     setIsDownloadingPdf(true);
@@ -409,7 +432,7 @@ export default function CertificateView() {
     }
   };
 
-  // Direct PNG Image Download
+  // Direct PNG Image Download (Digital)
   const downloadPng = async () => {
     if (!certData) return;
     setIsDownloadingPng(true);
@@ -463,6 +486,174 @@ export default function CertificateView() {
     );
   }
 
+  // Detect Hard-Copy status
+  const hardCopyMedia =
+    typeof certData.hardCopyFile === "object" ? (certData.hardCopyFile as MediaObj) : null;
+  const hardCopyUrl = certData.hardCopyUrl || hardCopyMedia?.url || null;
+  const mimeType = (hardCopyMedia?.mimeType || "").toLowerCase();
+  const isPdf = Boolean(
+    mimeType.includes("pdf") ||
+      hardCopyUrl?.toLowerCase().endsWith(".pdf") ||
+      hardCopyUrl?.includes("/pdf/") ||
+      hardCopyUrl?.includes(".pdf?")
+  );
+  const isHardCopy = certData.certificateType === "hard_copy" || Boolean(hardCopyUrl);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VIEW: HARD-COPY CERTIFICATE PRESENTATION (Responsive Scanned Copy)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (isHardCopy && hardCopyUrl) {
+    return (
+      <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col">
+        {/* Top Header Bar */}
+        <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex flex-col sm:flex-row justify-between items-center sticky top-0 z-30 shadow-sm gap-3">
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/verify/${encodeURIComponent(certificateId)}`}
+              className="text-slate-600 hover:text-slate-900 p-1.5 rounded-md hover:bg-slate-100 transition-colors"
+              title="Back to Verification"
+            >
+              <ArrowLeft size={20} />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold text-slate-800 tracking-tight">
+                  CODING CLUB CUH
+                </h1>
+                <span className="text-[11px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-300">
+                  Hard-Copy
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Official Archived Physical Certificate
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <Link
+              href={`/verify/${encodeURIComponent(certificateId)}`}
+              className="flex items-center gap-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg transition-colors"
+            >
+              <ShieldCheck size={15} /> Verify ID
+            </Link>
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors"
+            >
+              <Printer size={15} /> Print
+            </button>
+            <a
+              href={hardCopyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors"
+            >
+              <ExternalLink size={14} /> Open Original
+            </a>
+            <a
+              href={hardCopyUrl}
+              download={`Certificate_${certData.studentName.replace(/[^a-zA-Z0-9]/g, "_")}_${certData.certificateId}.${isPdf ? "pdf" : "jpg"}`}
+              className="flex items-center gap-2 bg-[#137558] hover:bg-[#0e5641] text-white px-5 py-2 rounded-lg font-bold text-sm shadow-sm hover:shadow transition-all"
+            >
+              <Download size={16} /> Download {isPdf ? "PDF" : "Certificate"}
+            </a>
+          </div>
+        </header>
+
+        {/* Certificate Content */}
+        <main className="container mx-auto px-4 py-8 max-w-[1200px] flex-1 flex flex-col items-center">
+          <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-lg border border-slate-200 w-full flex flex-col items-center">
+            {/* Header Badge */}
+            <div className="w-full flex flex-col sm:flex-row items-center justify-between pb-6 mb-6 border-b border-slate-100 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
+                  <CheckCircle size={26} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {certData.studentName}
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Programme: <span className="font-semibold text-slate-700">{certData.internship}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Certificate Number
+                  </p>
+                  <p className="text-sm font-mono font-bold text-[#1a365d]">
+                    {certData.certificateId}
+                  </p>
+                </div>
+                <div className="text-right pl-3 border-l border-slate-200">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Issue Date
+                  </p>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {formatDate(certData.issueDate)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Document Render Area */}
+            <div className="w-full flex justify-center bg-slate-50 rounded-xl p-3 sm:p-6 border border-slate-200">
+              {isPdf ? (
+                <div className="w-full">
+                  <iframe
+                    src={`${hardCopyUrl}#toolbar=0`}
+                    title="Certificate Document Preview"
+                    className="w-full h-[600px] sm:h-[800px] rounded-lg border border-slate-300 bg-white shadow-md"
+                  />
+                </div>
+              ) : (
+                <div className="max-w-4xl w-full flex justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={hardCopyUrl}
+                    alt={`Hard-copy Certificate for ${certData.studentName}`}
+                    className="max-w-full max-h-[82vh] rounded-lg shadow-xl border border-slate-200 object-contain bg-white"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Credential Details Bar */}
+            <div className="w-full mt-6 pt-5 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs text-slate-600">
+              <div>
+                <span className="font-bold text-slate-400 uppercase block mb-0.5">Issuing Body</span>
+                <span className="font-semibold text-slate-800">Coding Club CUH</span>
+              </div>
+              <div>
+                <span className="font-bold text-slate-400 uppercase block mb-0.5">Department</span>
+                <span className="font-semibold text-slate-800">{certData.department || "Computer Science & IT"}</span>
+              </div>
+              <div>
+                <span className="font-bold text-slate-400 uppercase block mb-0.5">Format</span>
+                <span className="font-semibold text-slate-800">Archived Hard-Copy {isPdf ? "(PDF)" : "(Image)"}</span>
+              </div>
+              <div className="flex sm:justify-end items-center">
+                <Link
+                  href={`/verify/${encodeURIComponent(certData.certificateId)}`}
+                  className="font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline"
+                >
+                  <ShieldCheck size={14} /> Official Verification Link ↗
+                </Link>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VIEW: DIGITALLY GENERATED MASTER CERTIFICATE (Exact Existing Implementation)
+  // ═══════════════════════════════════════════════════════════════════════════
   const programmeName = (certData.internship || certData.course || "PROGRAMME NAME").toUpperCase();
 
   return (
@@ -572,7 +763,7 @@ export default function CertificateView() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <Link
-            href="/verify"
+            href={`/verify/${encodeURIComponent(certificateId)}`}
             className="flex items-center gap-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg transition-colors"
           >
             <ShieldCheck size={15} /> Verify
@@ -641,7 +832,7 @@ export default function CertificateView() {
                   boxSizing: "border-box",
                 }}
               >
-                {/* ── "CERTIFICATE OF COMPLETION" (Prominent Large Font) ── */}
+                {/* ── "CERTIFICATE OF COMPLETION" ── */}
                 <div
                   style={{
                     position: "absolute",
@@ -679,7 +870,7 @@ export default function CertificateView() {
                   </p>
                 </div>
 
-                {/* ── Dynamic Programme Name (Deep Royal Navy Serif - Bigger Font) ── */}
+                {/* ── Dynamic Programme Name ── */}
                 <div
                   style={{
                     position: "absolute",
@@ -705,7 +896,7 @@ export default function CertificateView() {
                   </h3>
                 </div>
 
-                {/* ── "This is to certify that" (Bigger Font) ── */}
+                {/* ── "This is to certify that" ── */}
                 <div
                   style={{
                     position: "absolute",
@@ -729,7 +920,7 @@ export default function CertificateView() {
                   </p>
                 </div>
 
-                {/* ── Dynamic Candidate Name & Decorative Underline (Bigger Font) ── */}
+                {/* ── Dynamic Candidate Name & Decorative Underline ── */}
                 <div
                   style={{
                     position: "absolute",
@@ -773,7 +964,7 @@ export default function CertificateView() {
                   </div>
                 </div>
 
-                {/* ── Body Paragraph (Bigger Font) ── */}
+                {/* ── Body Paragraph ── */}
                 <div
                   style={{
                     position: "absolute",
@@ -804,7 +995,7 @@ export default function CertificateView() {
                   </p>
                 </div>
 
-                {/* ── Awarded on Date (Bigger Font) ── */}
+                {/* ── Awarded on Date ── */}
                 <div
                   style={{
                     position: "absolute",
@@ -864,7 +1055,7 @@ export default function CertificateView() {
                 </div>
 
                 {/* ── Signature Lines & Dynamic Images Above Titles ── */}
-                {/* Convener (Dr. Sunil Kumar) (Left: Center at 195px) */}
+                {/* Convener (Dr. Sunil Kumar) */}
                 <div
                   style={{
                     position: "absolute",
@@ -915,7 +1106,7 @@ export default function CertificateView() {
                   </p>
                 </div>
 
-                {/* Co-convener (Dr. Prithi Maratha) (Center: Center at 561px) */}
+                {/* Co-convener (Dr. Prithi Maratha) */}
                 <div
                   style={{
                     position: "absolute",
@@ -966,7 +1157,7 @@ export default function CertificateView() {
                   </p>
                 </div>
 
-                {/* Co-convener (Dr. Nitin Goyal) (Right: Center at 920px) */}
+                {/* Co-convener (Dr. Nitin Goyal) */}
                 <div
                   style={{
                     position: "absolute",

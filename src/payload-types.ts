@@ -424,10 +424,13 @@ export interface User {
 export interface Certificate {
   id: number;
   isIssued?: boolean | null;
+  certificateType?: ('digital' | 'hard_copy') | null;
   /**
    * Leave empty to auto-generate (e.g. CCCUH-INT-2026-XXXX)
    */
   certificateId: string;
+  hardCopyFile?: (number | null) | Media;
+  hardCopyUrl?: string | null;
   /**
    * Link this certificate to the student's login account so they can see it in their dashboard.
    */
@@ -2007,7 +2010,10 @@ export interface AchievementsSelect<T extends boolean = true> {
  */
 export interface CertificatesSelect<T extends boolean = true> {
   isIssued?: T;
+  certificateType?: T;
   certificateId?: T;
+  hardCopyFile?: T;
+  hardCopyUrl?: T;
   student?: T;
   courseRef?: T;
   studentName?: T;

@@ -214,6 +214,33 @@ export default buildConfig({
         isInitialized = false;
       }
 
+      // Ensure certificate columns exist
+      try {
+        const certColumnsSql = `
+          ALTER TABLE "certificates" ADD COLUMN IF NOT EXISTS "certificate_type" varchar DEFAULT 'digital';
+          ALTER TABLE "certificates" ADD COLUMN IF NOT EXISTS "hard_copy_file_id" integer;
+          ALTER TABLE "certificates" ADD COLUMN IF NOT EXISTS "hard_copy_url" varchar;
+          DO $$
+          BEGIN
+            ALTER TABLE "certificates" ALTER COLUMN "start_date" DROP NOT NULL;
+            ALTER TABLE "certificates" ALTER COLUMN "end_date" DROP NOT NULL;
+            ALTER TABLE "certificates" ALTER COLUMN "department" DROP NOT NULL;
+            ALTER TABLE "certificates" ALTER COLUMN "course" DROP NOT NULL;
+            ALTER TABLE "certificates" ALTER COLUMN "semester" DROP NOT NULL;
+          EXCEPTION
+            WHEN others THEN null;
+          END $$;
+        `;
+        if (db?.pool?.query) {
+          await db.pool.query(certColumnsSql);
+        } else if (db?.drizzle?.execute) {
+          const { sql } = await import('@payloadcms/db-postgres/drizzle');
+          await db.drizzle.execute(sql.raw(certColumnsSql));
+        }
+      } catch (colErr) {
+        payload.logger.warn(`Notice on certificates column migration: ${colErr}`);
+      }
+
       if (isInitialized) {
         return;
       }
@@ -286,6 +313,19 @@ export default buildConfig({
           ALTER TABLE "courses" ADD COLUMN IF NOT EXISTS "completion_date" timestamp(3) with time zone;
           ALTER TABLE "courses" ADD COLUMN IF NOT EXISTS "cover_image_id" integer;
           ALTER TABLE "certificates" ADD COLUMN IF NOT EXISTS "course_ref_id" integer;
+          ALTER TABLE "certificates" ADD COLUMN IF NOT EXISTS "certificate_type" varchar DEFAULT 'digital';
+          ALTER TABLE "certificates" ADD COLUMN IF NOT EXISTS "hard_copy_file_id" integer;
+          ALTER TABLE "certificates" ADD COLUMN IF NOT EXISTS "hard_copy_url" varchar;
+          DO $$
+          BEGIN
+            ALTER TABLE "certificates" ALTER COLUMN "start_date" DROP NOT NULL;
+            ALTER TABLE "certificates" ALTER COLUMN "end_date" DROP NOT NULL;
+            ALTER TABLE "certificates" ALTER COLUMN "department" DROP NOT NULL;
+            ALTER TABLE "certificates" ALTER COLUMN "course" DROP NOT NULL;
+            ALTER TABLE "certificates" ALTER COLUMN "semester" DROP NOT NULL;
+          EXCEPTION
+            WHEN others THEN null;
+          END $$;
           DO $$
           BEGIN
             ALTER TYPE "public"."enum_certificates_semester" ADD VALUE IF NOT EXISTS 'Completed';

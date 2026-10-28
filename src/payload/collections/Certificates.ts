@@ -7,7 +7,7 @@ export const Certificates: CollectionConfig = {
   slug: 'certificates',
   admin: {
     useAsTitle: 'studentName',
-    defaultColumns: ['studentName', 'certificateId', 'internship', 'isIssued'],
+    defaultColumns: ['studentName', 'certificateId', 'certificateType', 'internship', 'isIssued'],
     group: 'Club Core',
   },
   access: {
@@ -23,7 +23,43 @@ export const Certificates: CollectionConfig = {
           data.issueDate = new Date().toISOString();
         }
 
-        // Fall back to global default signatures if any signature is not provided
+        // Satisfy DB constraints and provide sane defaults for date ranges
+        if (!data.startDate) {
+          data.startDate = data.issueDate;
+        }
+        if (!data.endDate) {
+          data.endDate = data.issueDate;
+        }
+
+        // Hard-copy certificates are issued by default unless explicitly unchecked
+        if (data.certificateType === 'hard_copy') {
+          if (typeof data.isIssued === 'undefined') {
+            data.isIssued = true;
+          }
+
+          // Auto-sync direct hardCopyUrl from linked media if provided
+          if (data.hardCopyFile) {
+            try {
+              const fileId =
+                typeof data.hardCopyFile === 'object'
+                  ? (data.hardCopyFile as { id?: string | number })?.id
+                  : data.hardCopyFile;
+              if (fileId) {
+                const mediaDoc = await payload.findByID({
+                  collection: 'media',
+                  id: fileId,
+                });
+                if (mediaDoc && mediaDoc.url) {
+                  data.hardCopyUrl = mediaDoc.url;
+                }
+              }
+            } catch {
+              // Ignore lookup error
+            }
+          }
+        }
+
+        // Fall back to global default signatures if any signature is not provided (for digital certs)
         if (!data.signatureInstructor || !data.signatureCoordinator || !data.signatureStudentCoordinator) {
           try {
             const settings = await payload.findGlobal({
@@ -61,6 +97,16 @@ export const Certificates: CollectionConfig = {
     ],
     afterRead: [
       async ({ doc, req }) => {
+        // Default certificateType if missing on legacy documents
+        if (!doc.certificateType) {
+          doc.certificateType = doc.hardCopyFile || doc.hardCopyUrl ? 'hard_copy' : 'digital';
+        }
+
+        // Populate hardCopyUrl if hardCopyFile is populated as media object
+        if (doc.hardCopyFile && typeof doc.hardCopyFile === 'object' && (doc.hardCopyFile as { url?: string }).url) {
+          doc.hardCopyUrl = doc.hardCopyUrl || (doc.hardCopyFile as { url?: string }).url;
+        }
+
         if (!doc.signatureInstructor || !doc.signatureCoordinator || !doc.signatureStudentCoordinator) {
           try {
             const settings = await req.payload.findGlobal({
@@ -89,6 +135,11 @@ export const Certificates: CollectionConfig = {
       async ({ doc, req, previousDoc, operation }) => {
         // Prevent duplicate sending if called from issue-certificates route
         if (req?.context?.skipEmailHook || req?.context?.fromIssueRoute) {
+          return
+        }
+
+        // Hard-copy certificates without student account do not require email dispatch
+        if (doc.certificateType === 'hard_copy' && !doc.student) {
           return
         }
 
@@ -202,13 +253,27 @@ export const Certificates: CollectionConfig = {
       },
     },
     {
+      name: 'certificateType',
+      type: 'select',
+      label: 'Certificate Type',
+      defaultValue: 'digital',
+      options: [
+        { label: 'Digitally Generated', value: 'digital' },
+        { label: 'Hard-Copy Upload', value: 'hard_copy' },
+      ],
+      admin: {
+        position: 'sidebar',
+        description: 'Digitally generated certificate or uploaded physical hard-copy.',
+      },
+    },
+    {
       name: 'certificateId',
       type: 'text',
       unique: true,
       required: true,
       admin: {
         position: 'sidebar',
-        description: 'Leave empty to auto-generate (e.g. CCCUH-INT-2026-XXXX)',
+        description: 'Certificate Number / ID (e.g. CCCUH-INT-2026-XXXX or custom hard-copy number)',
       },
       hooks: {
         beforeValidate: [
@@ -218,10 +283,28 @@ export const Certificates: CollectionConfig = {
               const randomNum = Math.floor(1000 + Math.random() * 9000);
               return `CCCUH-INT-${year}-${randomNum}`;
             }
-            return value;
+            return value.trim();
           }
         ]
       }
+    },
+    {
+      name: 'hardCopyFile',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Hard-Copy Certificate File (Image or PDF)',
+      admin: {
+        description: 'Uploaded original scanned copy (JPG, PNG, WEBP, or PDF).',
+      },
+    },
+    {
+      name: 'hardCopyUrl',
+      type: 'text',
+      label: 'Hard-Copy File Direct URL',
+      admin: {
+        position: 'sidebar',
+        description: 'Direct link to the uploaded certificate document.',
+      },
     },
     {
       name: 'student',
@@ -253,7 +336,7 @@ export const Certificates: CollectionConfig = {
       type: 'text',
       label: 'Department',
       defaultValue: 'Computer Sciences & Information Technology',
-      required: true,
+      required: false,
       admin: {
         components: {
           Field: '@/components/payload-admin/AcademicFields/DepartmentSelectField#default',
@@ -265,7 +348,7 @@ export const Certificates: CollectionConfig = {
       type: 'text',
       label: 'Course',
       defaultValue: 'Master of Computer Applications (M.C.A.)',
-      required: true,
+      required: false,
       admin: {
         components: {
           Field: '@/components/payload-admin/AcademicFields/CourseSelectField#default',
@@ -277,7 +360,7 @@ export const Certificates: CollectionConfig = {
       type: 'text',
       label: 'Semester',
       defaultValue: '1st Semester',
-      required: true,
+      required: false,
       admin: {
         components: {
           Field: '@/components/payload-admin/AcademicFields/SemesterSelectField#default',
@@ -286,14 +369,14 @@ export const Certificates: CollectionConfig = {
     },
     {
       name: 'internship',
-      label: 'Programme Name',
+      label: 'Programme / Event Name',
       type: 'text',
       required: true,
     },
     {
       name: 'startDate',
       type: 'date',
-      required: true,
+      required: false,
       admin: {
         date: { pickerAppearance: 'dayOnly' },
       },
@@ -301,7 +384,7 @@ export const Certificates: CollectionConfig = {
     {
       name: 'endDate',
       type: 'date',
-      required: true,
+      required: false,
       admin: {
         date: { pickerAppearance: 'dayOnly' },
       },
@@ -326,9 +409,9 @@ export const Certificates: CollectionConfig = {
     },
     {
       type: 'collapsible',
-      label: 'Signatures (upload when ready)',
+      label: 'Signatures (for digitally generated certificates)',
       admin: {
-        description: 'Upload signature images. These will appear on the certificate.',
+        description: 'Upload signature images. These appear on digitally rendered certificates.',
       },
       fields: [
         {

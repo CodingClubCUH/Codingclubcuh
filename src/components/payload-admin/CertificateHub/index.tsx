@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Award,
   Calendar,
@@ -17,8 +18,15 @@ import {
   Users,
   AlertCircle,
   Eye,
+  FileText,
+  UploadCloud,
+  Copy,
+  Check,
+  Image as ImageIcon,
+  Plus,
 } from "lucide-react";
 import SignatureAdjusterPreview from "@/components/payload-admin/SignatureAdjusterPreview";
+import HardCopyModal from "./HardCopyModal";
 
 interface CourseBatch {
   id: string | number;
@@ -54,6 +62,26 @@ interface StudentEnrollment {
   certificateSentAt: string | null;
 }
 
+interface HardCopyCertificate {
+  id: string | number;
+  certificateId: string;
+  studentName: string;
+  internship: string; // Event / Programme name
+  issueDate: string;
+  department?: string;
+  course?: string;
+  semester?: string;
+  certificateType: "hard_copy" | "digital";
+  hardCopyUrl?: string;
+  hardCopyFile?: {
+    id?: string | number;
+    url?: string;
+    filename?: string;
+    mimeType?: string;
+    filesize?: number;
+  } | string | number;
+}
+
 const HUB_STYLES = `
   .ch-root {
     width: 100%;
@@ -83,7 +111,7 @@ const HUB_STYLES = `
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
     padding: 20px 24px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
   .ch-header-title-box {
     display: flex;
@@ -298,11 +326,6 @@ const HUB_STYLES = `
     color: #ffffff !important;
     transform: translateY(-1px);
   }
-  .ch-btn-warning {
-    background: rgba(245, 158, 11, 0.15);
-    border: 1px solid #f59e0b;
-    color: #fbbf24 !important;
-  }
   .ch-badge {
     display: inline-flex;
     align-items: center;
@@ -328,6 +351,21 @@ const HUB_STYLES = `
     background: rgba(59, 130, 246, 0.15);
     color: #60a5fa;
     border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+  .ch-badge-hardcopy {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+  .ch-badge-pdf {
+    background: rgba(244, 63, 94, 0.15);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.3);
+  }
+  .ch-badge-image {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
   }
   .ch-metrics-row {
     display: flex;
@@ -416,13 +454,27 @@ const HUB_STYLES = `
 `;
 
 export default function CertificateHub() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "hard-copy" ? "hard-copy" : "batches";
+
+  // Tab mode: 'batches' | 'hard-copy'
+  const [activeHubTab, setActiveHubTab] = useState<"batches" | "hard-copy">(initialTab);
+
   const [courses, setCourses] = useState<CourseBatch[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [hasGlobalSignatures, setHasGlobalSignatures] = useState(false);
   const [loadingCourses, setLoadingCourses] = useState(true);
 
-  // Selected filters
+  // Hard-copy certificates state
+  const [hardCopyCerts, setHardCopyCerts] = useState<HardCopyCertificate[]>([]);
+  const [loadingHardCopy, setLoadingHardCopy] = useState(false);
+  const [hardCopySearch, setHardCopySearch] = useState("");
+  const [hardCopyFilter, setHardCopyFilter] = useState<"all" | "pdf" | "image">("all");
+  const [showHardCopyModal, setShowHardCopyModal] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Selected filters for digital courses
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -466,8 +518,25 @@ export default function CertificateHub() {
     }
   };
 
+  // 1b. Fetch all hard-copy certificates
+  const fetchHardCopyCerts = async () => {
+    setLoadingHardCopy(true);
+    try {
+      const res = await fetch("/api/admin/certificates/hard-copy");
+      const data = await res.json();
+      if (data.success) {
+        setHardCopyCerts(data.certificates || []);
+      }
+    } catch (err) {
+      console.error("Failed to load hard-copy certificates", err);
+    } finally {
+      setLoadingHardCopy(false);
+    }
+  };
+
   useEffect(() => {
     fetchCourses();
+    fetchHardCopyCerts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -525,6 +594,51 @@ export default function CertificateHub() {
       return true;
     });
   }, [students, studentFilter, studentSearch]);
+
+  // Filtered hard-copy certificates
+  const filteredHardCopyCerts = useMemo(() => {
+    return hardCopyCerts.filter((cert) => {
+      const fileUrl =
+        cert.hardCopyUrl ||
+        (typeof cert.hardCopyFile === "object" ? cert.hardCopyFile?.url : "") ||
+        "";
+      const isPdf =
+        fileUrl.toLowerCase().endsWith(".pdf") ||
+        (typeof cert.hardCopyFile === "object" &&
+          (cert.hardCopyFile?.mimeType || "").includes("pdf"));
+
+      if (hardCopyFilter === "pdf" && !isPdf) return false;
+      if (hardCopyFilter === "image" && isPdf) return false;
+
+      if (hardCopySearch.trim()) {
+        const q = hardCopySearch.toLowerCase();
+        return (
+          cert.certificateId.toLowerCase().includes(q) ||
+          cert.studentName.toLowerCase().includes(q) ||
+          cert.internship.toLowerCase().includes(q) ||
+          (cert.department && cert.department.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
+  }, [hardCopyCerts, hardCopyFilter, hardCopySearch]);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(text);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  function formatDate(dateInput: string) {
+    if (!dateInput) return "";
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return "";
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
 
   // Toggle selection for bulk actions
   const toggleSelectStudent = (id: string | number) => {
@@ -661,14 +775,29 @@ export default function CertificateHub() {
             <Award size={24} />
           </div>
           <div>
-            <h1 className="ch-title">Course Certificate Hub</h1>
+            <h1 className="ch-title">Certificate Management Hub</h1>
             <p className="ch-subtitle">
-              Browse courses by month & year, manage batches, and issue official certificates with 1 click.
+              Issue digital certificates for course batches or upload and verify official hard-copy credentials.
             </p>
           </div>
         </div>
 
         <div className="ch-header-actions">
+          {/* PRIMARY: Add Hard-Copy Certificate Button */}
+          <button
+            type="button"
+            onClick={() => setShowHardCopyModal(true)}
+            className="ch-btn ch-btn-primary"
+            style={{
+              padding: "9px 16px",
+              boxShadow: "0 4px 14px rgba(16, 185, 129, 0.4)",
+            }}
+            title="Upload original hard-copy certificate (Image or PDF)"
+          >
+            <UploadCloud size={16} />
+            <span>Add Hard-Copy Certificate</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setShowAdjusterModal(true)}
@@ -681,31 +810,78 @@ export default function CertificateHub() {
             title="Preview live certificate and fine-tune signature sizes/positions"
           >
             <Eye size={16} />
-            <span>Preview & Adjust Signatures</span>
+            <span>Signatures Manager</span>
           </button>
+
           <Link
             href="/admin/globals/certificate-settings"
             className="ch-btn ch-btn-outline"
           >
             <ShieldCheck size={16} color={hasGlobalSignatures ? "#10b981" : "#f59e0b"} />
-            <span>{hasGlobalSignatures ? "Signatures Configured" : "Upload Signatures"}</span>
+            <span>{hasGlobalSignatures ? "Signatures Set" : "Upload Signatures"}</span>
           </Link>
+
           <button
             onClick={() => {
               fetchCourses();
+              fetchHardCopyCerts();
               if (selectedCourseId) selectCourse(selectedCourseId);
             }}
-            disabled={loadingCourses || loadingStudents}
+            disabled={loadingCourses || loadingStudents || loadingHardCopy}
             className="ch-btn ch-btn-outline"
           >
-            <RefreshCw size={14} className={loadingCourses || loadingStudents ? "animate-spin" : ""} />
+            <RefreshCw
+              size={14}
+              className={loadingCourses || loadingStudents || loadingHardCopy ? "animate-spin" : ""}
+            />
             <span>Refresh</span>
           </button>
         </div>
       </div>
 
-      {/* ── Global Signatures Banner (if missing) ── */}
-      {!hasGlobalSignatures && (
+      {/* ── Hub Navigation View Tabs (Digital vs Hard-Copy) ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "18px" }}>
+        <button
+          type="button"
+          onClick={() => setActiveHubTab("batches")}
+          className={`ch-tab-pill ${activeHubTab === "batches" ? "active" : ""}`}
+          style={{
+            padding: "8px 18px",
+            fontSize: "13px",
+            borderRadius: "10px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "7px",
+            border: activeHubTab === "batches" ? "1px solid rgba(255,255,255,0.2)" : "1px solid transparent",
+          }}
+        >
+          <GraduationCap size={16} />
+          <span>Course Batches (Digital Issuance)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveHubTab("hard-copy");
+            fetchHardCopyCerts();
+          }}
+          className={`ch-tab-pill ${activeHubTab === "hard-copy" ? "active-emerald" : ""}`}
+          style={{
+            padding: "8px 18px",
+            fontSize: "13px",
+            borderRadius: "10px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "7px",
+          }}
+        >
+          <FileText size={16} />
+          <span>Hard-Copy Certificates ({hardCopyCerts.length})</span>
+        </button>
+      </div>
+
+      {/* ── Global Signatures Banner (if missing and on digital view) ── */}
+      {activeHubTab === "batches" && !hasGlobalSignatures && (
         <div className="ch-banner-warning">
           <AlertCircle size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: "2px" }} />
           <div>
@@ -716,7 +892,7 @@ export default function CertificateHub() {
             >
               Certificate Settings & Signatures
             </Link>
-            . All generated certificates will automatically inherit them without needing to upload per certificate.
+            . All digitally generated certificates will automatically inherit them.
           </div>
         </div>
       )}
@@ -752,383 +928,699 @@ export default function CertificateHub() {
         </div>
       )}
 
-      {/* ── Main Two-Column Layout ── */}
-      <div className="ch-layout-grid">
-        {/* ── Left Column: Course & Batch Browser (360px) ── */}
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      {/* TAB 1: HARD-COPY CERTIFICATE MANAGEMENT PANEL                         */}
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      {activeHubTab === "hard-copy" ? (
         <div className="ch-card">
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            <Calendar size={18} color="#10b981" />
-            <h2 style={{ fontSize: "15px", fontWeight: 700, color: "#ffffff", margin: 0 }}>
-              Course Batches ({filteredCourses.length})
-            </h2>
-          </div>
-
-          {/* Filter Controls: Month, Year, Status */}
-          <div className="ch-filter-grid">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "12px",
+              paddingBottom: "16px",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
             <div>
-              <label className="ch-input-label">Filter by Year</label>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="ch-select"
-              >
-                <option value="all">All Years</option>
-                {availableYears.map((y) => (
-                  <option key={y} value={String(y)}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                <span className="ch-badge ch-badge-hardcopy">Archived Credentials</span>
+                <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                  Total: <strong style={{ color: "#ffffff" }}>{hardCopyCerts.length}</strong> Certificates
+                </span>
+              </div>
+              <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#ffffff", margin: 0 }}>
+                Hard-Copy & Scanned Certificates Archive
+              </h2>
             </div>
 
-            <div>
-              <label className="ch-input-label">Filter by Month</label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="ch-select"
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              {/* Search bar */}
+              <div className="ch-search-wrapper" style={{ margin: 0, width: "240px" }}>
+                <Search size={14} className="ch-search-icon" />
+                <input
+                  type="text"
+                  value={hardCopySearch}
+                  onChange={(e) => setHardCopySearch(e.target.value)}
+                  placeholder="Search by ID, name, event..."
+                  className="ch-input"
+                />
+              </div>
+
+              {/* Filter Tabs */}
+              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <button
+                  type="button"
+                  onClick={() => setHardCopyFilter("all")}
+                  className={`ch-tab-pill ${hardCopyFilter === "all" ? "active" : ""}`}
+                >
+                  All ({hardCopyCerts.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHardCopyFilter("pdf")}
+                  className={`ch-tab-pill ${hardCopyFilter === "pdf" ? "active" : ""}`}
+                >
+                  PDFs
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHardCopyFilter("image")}
+                  className={`ch-tab-pill ${hardCopyFilter === "image" ? "active" : ""}`}
+                >
+                  Images
+                </button>
+              </div>
+
+              {/* Add Button */}
+              <button
+                type="button"
+                onClick={() => setShowHardCopyModal(true)}
+                className="ch-btn ch-btn-primary"
               >
-                <option value="all">All Months</option>
-                {availableMonths.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+                <Plus size={15} />
+                <span>Add Hard-Copy</span>
+              </button>
             </div>
           </div>
 
-          {/* Search Input for Courses */}
-          <div className="ch-search-wrapper">
-            <Search size={14} className="ch-search-icon" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search course or instructor..."
-              className="ch-input"
-            />
+          {/* Hard-Copy Table */}
+          <div className="ch-table-wrapper">
+            <table className="ch-table">
+              <thead>
+                <tr>
+                  <th>Certificate Number</th>
+                  <th>Student Name</th>
+                  <th>Event / Programme</th>
+                  <th>Issue Date</th>
+                  <th>Document Type</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingHardCopy ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+                      Loading hard-copy certificates...
+                    </td>
+                  </tr>
+                ) : filteredHardCopyCerts.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: "50px", textAlign: "center" }}>
+                      <FileText size={36} color="#64748b" style={{ margin: "0 auto 10px auto", opacity: 0.5 }} />
+                      <p style={{ color: "#ffffff", fontWeight: 700, margin: "0 0 4px 0", fontSize: "14px" }}>
+                        No hard-copy certificates found
+                      </p>
+                      <p style={{ color: "#94a3b8", fontSize: "12px", margin: "0 0 16px 0" }}>
+                        {hardCopySearch
+                          ? "No certificates match your search query."
+                          : "Upload your first scanned hard-copy certificate or PDF."}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowHardCopyModal(true)}
+                        className="ch-btn ch-btn-primary"
+                        style={{ margin: "0 auto" }}
+                      >
+                        <Plus size={14} /> Add Hard-Copy Certificate
+                      </button>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredHardCopyCerts.map((cert) => {
+                    const fileUrl =
+                      cert.hardCopyUrl ||
+                      (typeof cert.hardCopyFile === "object" ? cert.hardCopyFile?.url : "") ||
+                      "";
+                    const isPdf =
+                      fileUrl.toLowerCase().endsWith(".pdf") ||
+                      (typeof cert.hardCopyFile === "object" &&
+                        (cert.hardCopyFile?.mimeType || "").includes("pdf"));
+
+                    return (
+                      <tr key={cert.id}>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#34d399", fontSize: "13px" }}>
+                              {cert.certificateId}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(cert.certificateId)}
+                              style={{
+                                background: "transparent",
+                                border: "none",
+                                color: copiedId === cert.certificateId ? "#34d399" : "#64748b",
+                                cursor: "pointer",
+                                padding: "2px",
+                              }}
+                              title="Copy ID"
+                            >
+                              {copiedId === cert.certificateId ? <Check size={12} /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        </td>
+
+                        <td>
+                          <div style={{ fontWeight: 700, color: "#ffffff", fontSize: "13px" }}>
+                            {cert.studentName}
+                          </div>
+                          {cert.department && (
+                            <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                              {cert.department}
+                            </div>
+                          )}
+                        </td>
+
+                        <td>
+                          <span style={{ color: "#93c5fd", fontWeight: 600 }}>{cert.internship}</span>
+                        </td>
+
+                        <td style={{ color: "#cbd5e1" }}>
+                          {formatDate(cert.issueDate)}
+                        </td>
+
+                        <td>
+                          {isPdf ? (
+                            <span className="ch-badge ch-badge-pdf">
+                              <FileText size={11} /> PDF Document
+                            </span>
+                          ) : (
+                            <span className="ch-badge ch-badge-image">
+                              <ImageIcon size={11} /> Image Scanned
+                            </span>
+                          )}
+                        </td>
+
+                        <td style={{ textAlign: "right" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px" }}>
+                            <Link
+                              href={`/verify/${encodeURIComponent(cert.certificateId)}`}
+                              target="_blank"
+                              className="ch-btn ch-btn-outline"
+                              style={{ padding: "5px 10px", fontSize: "11px" }}
+                              title="Verify Certificate Authenticity"
+                            >
+                              <ShieldCheck size={12} color="#10b981" />
+                              <span>Verify</span>
+                            </Link>
+
+                            <Link
+                              href={`/certificate/${encodeURIComponent(cert.certificateId)}`}
+                              target="_blank"
+                              className="ch-btn ch-btn-outline"
+                              style={{ padding: "5px 10px", fontSize: "11px" }}
+                              title="View Certificate in Portal"
+                            >
+                              <ExternalLink size={12} />
+                              <span>View</span>
+                            </Link>
+
+                            {fileUrl && (
+                              <a
+                                href={fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ch-btn ch-btn-outline"
+                                style={{ padding: "5px 10px", fontSize: "11px" }}
+                                title="Open Original File"
+                              >
+                                <span>Original ↗</span>
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
+        </div>
+      ) : (
+        /* ═════════════════════════════════════════════════════════════════════ */
+        /* TAB 2: COURSE BATCHES (DIGITAL ISSUANCE)                              */
+        /* ═════════════════════════════════════════════════════════════════════ */
+        <div className="ch-layout-grid">
+          {/* ── Left Column: Course & Batch Browser (360px) ── */}
+          <div className="ch-card">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginBottom: "14px",
+                paddingBottom: "10px",
+                borderBottom: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <Calendar size={18} color="#10b981" />
+              <h2 style={{ fontSize: "15px", fontWeight: 700, color: "#ffffff", margin: 0 }}>
+                Course Batches ({filteredCourses.length})
+              </h2>
+            </div>
 
-          {/* Course Batch Cards List */}
-          <div className="ch-course-list">
-            {loadingCourses ? (
-              <div style={{ padding: "30px", textAlign: "center", color: "#64748b", fontSize: "12px" }}>
-                Loading courses...
+            {/* Filter Controls: Month, Year, Status */}
+            <div className="ch-filter-grid">
+              <div>
+                <label className="ch-input-label">Filter by Year</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className="ch-select"
+                >
+                  <option value="all">All Years</option>
+                  {availableYears.map((y) => (
+                    <option key={y} value={String(y)}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ) : filteredCourses.length === 0 ? (
-              <div style={{ padding: "30px", textAlign: "center", color: "#64748b", fontSize: "12px", border: "1px dashed #334155", borderRadius: "10px" }}>
-                No courses found matching the selected month/year filter.
+
+              <div>
+                <label className="ch-input-label">Filter by Month</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="ch-select"
+                >
+                  <option value="all">All Months</option>
+                  {availableMonths.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ) : (
-              filteredCourses.map((c) => {
-                const isSelected = selectedCourseId === c.id;
-                const percentIssued =
-                  c.totalEnrolled > 0 ? Math.round((c.issuedCount / c.totalEnrolled) * 100) : 0;
+            </div>
 
-                return (
-                  <div
-                    key={c.id}
-                    onClick={() => selectCourse(c.id)}
-                    className={`ch-course-card ${isSelected ? "active" : ""}`}
-                  >
-                    <div className="ch-course-card-top">
-                      <h3 className="ch-course-card-title">{c.batchName}</h3>
-                      <span className="ch-badge ch-badge-active">{c.status}</span>
-                    </div>
+            {/* Search Input for Courses */}
+            <div className="ch-search-wrapper">
+              <Search size={14} className="ch-search-icon" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search course or instructor..."
+                className="ch-input"
+              />
+            </div>
 
-                    <p className="ch-course-card-subtitle">
-                      Instructor: {c.instructorName || "Coding Club CUH"}
-                    </p>
+            {/* Course Batch Cards List */}
+            <div className="ch-course-list">
+              {loadingCourses ? (
+                <div style={{ padding: "30px", textAlign: "center", color: "#64748b", fontSize: "12px" }}>
+                  Loading courses...
+                </div>
+              ) : filteredCourses.length === 0 ? (
+                <div
+                  style={{
+                    padding: "30px",
+                    textAlign: "center",
+                    color: "#64748b",
+                    fontSize: "12px",
+                    border: "1px dashed #334155",
+                    borderRadius: "10px",
+                  }}
+                >
+                  No courses found matching the selected month/year filter.
+                </div>
+              ) : (
+                filteredCourses.map((c) => {
+                  const isSelected = selectedCourseId === c.id;
+                  const percentIssued =
+                    c.totalEnrolled > 0 ? Math.round((c.issuedCount / c.totalEnrolled) * 100) : 0;
 
-                    {/* Progress Bar & Stats */}
-                    <div className="ch-course-card-footer">
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#94a3b8" }}>
-                        <Users size={13} />
-                        <span>{c.totalEnrolled} Enrolled</span>
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => selectCourse(c.id)}
+                      className={`ch-course-card ${isSelected ? "active" : ""}`}
+                    >
+                      <div className="ch-course-card-top">
+                        <h3 className="ch-course-card-title">{c.batchName}</h3>
+                        <span className="ch-badge ch-badge-active">{c.status}</span>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 700 }}>
-                        <span style={{ color: c.issuedCount > 0 ? "#34d399" : "#94a3b8" }}>
-                          {c.issuedCount} Issued
-                        </span>
-                        {c.pendingCount > 0 && (
-                          <span style={{ color: "#fbbf24" }}>({c.pendingCount} Pending)</span>
-                        )}
-                      </div>
-                    </div>
 
-                    {c.totalEnrolled > 0 && (
-                      <div style={{ width: "100%", background: "#1e293b", height: "5px", borderRadius: "999px", overflow: "hidden", marginTop: "8px" }}>
+                      <p className="ch-course-card-subtitle">
+                        Instructor: {c.instructorName || "Coding Club CUH"}
+                      </p>
+
+                      {/* Progress Bar & Stats */}
+                      <div className="ch-course-card-footer">
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#94a3b8" }}>
+                          <Users size={13} />
+                          <span>{c.totalEnrolled} Enrolled</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 700 }}>
+                          <span style={{ color: c.issuedCount > 0 ? "#34d399" : "#94a3b8" }}>
+                            {c.issuedCount} Issued
+                          </span>
+                          {c.pendingCount > 0 && (
+                            <span style={{ color: "#fbbf24" }}>({c.pendingCount} Pending)</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {c.totalEnrolled > 0 && (
                         <div
                           style={{
-                            background: "#10b981",
-                            height: "100%",
-                            width: `${percentIssued}%`,
+                            width: "100%",
+                            background: "#1e293b",
+                            height: "5px",
                             borderRadius: "999px",
-                            transition: "width 0.3s ease",
+                            overflow: "hidden",
+                            marginTop: "8px",
                           }}
-                        />
+                        >
+                          <div
+                            style={{
+                              background: "#10b981",
+                              height: "100%",
+                              width: `${percentIssued}%`,
+                              borderRadius: "999px",
+                              transition: "width 0.3s ease",
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* ── Right Column: Selected Batch Student Roster & Issuance Table ── */}
+          <div className="ch-card">
+            {selectedCourseData ? (
+              <>
+                {/* Batch Header Bar */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "12px",
+                    paddingBottom: "16px",
+                    borderBottom: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div>
+                    <span className="ch-badge ch-badge-issued" style={{ marginBottom: "6px" }}>
+                      Active Batch
+                    </span>
+                    <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#ffffff", margin: "4px 0 2px 0" }}>
+                      {selectedCourseData.batchName}
+                    </h2>
+                    <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
+                      {selectedCourseData.department} • Instructor: {selectedCourseData.instructorName}
+                    </p>
+                  </div>
+
+                  {/* Summary Metric Badges */}
+                  <div className="ch-metrics-row">
+                    <div className="ch-metric-box">
+                      <div className="ch-metric-label">Total</div>
+                      <div className="ch-metric-val">{selectedCourseData.totalEnrolled}</div>
+                    </div>
+                    <div
+                      className="ch-metric-box"
+                      style={{ background: "rgba(16, 185, 129, 0.12)", borderColor: "rgba(16, 185, 129, 0.3)" }}
+                    >
+                      <div className="ch-metric-label" style={{ color: "#34d399" }}>
+                        Issued
                       </div>
+                      <div className="ch-metric-val" style={{ color: "#34d399" }}>
+                        {selectedCourseData.issuedCount}
+                      </div>
+                    </div>
+                    <div
+                      className="ch-metric-box"
+                      style={{ background: "rgba(245, 158, 11, 0.12)", borderColor: "rgba(245, 158, 11, 0.3)" }}
+                    >
+                      <div className="ch-metric-label" style={{ color: "#fbbf24" }}>
+                        Pending
+                      </div>
+                      <div className="ch-metric-val" style={{ color: "#fbbf24" }}>
+                        {selectedCourseData.pendingCount}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Student Table Controls: Search, Tabs, Bulk Button */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "12px",
+                    marginTop: "16px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <button
+                      onClick={() => setStudentFilter("all")}
+                      className={`ch-tab-pill ${studentFilter === "all" ? "active" : ""}`}
+                    >
+                      All ({students.length})
+                    </button>
+                    <button
+                      onClick={() => setStudentFilter("pending")}
+                      className={`ch-tab-pill ${studentFilter === "pending" ? "active-amber" : ""}`}
+                    >
+                      Pending ({students.filter((s) => !s.hasCertificate).length})
+                    </button>
+                    <button
+                      onClick={() => setStudentFilter("issued")}
+                      className={`ch-tab-pill ${studentFilter === "issued" ? "active-emerald" : ""}`}
+                    >
+                      Issued ({students.filter((s) => s.hasCertificate).length})
+                    </button>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div className="ch-search-wrapper" style={{ margin: 0, width: "220px" }}>
+                      <Search size={14} className="ch-search-icon" />
+                      <input
+                        type="text"
+                        value={studentSearch}
+                        onChange={(e) => setStudentSearch(e.target.value)}
+                        placeholder="Search student or email..."
+                        className="ch-input"
+                      />
+                    </div>
+
+                    {/* Bulk Generate Action Button */}
+                    {selectedEnrollmentIds.length > 0 && (
+                      <button
+                        onClick={handleGenerateBulk}
+                        disabled={processingId === "bulk"}
+                        className="ch-btn ch-btn-primary"
+                      >
+                        {processingId === "bulk" ? (
+                          <RefreshCw size={14} className="animate-spin" />
+                        ) : (
+                          <GraduationCap size={15} />
+                        )}
+                        <span>Issue Selected ({selectedEnrollmentIds.length})</span>
+                      </button>
                     )}
                   </div>
-                );
-              })
+                </div>
+
+                {/* Enrolled Students Table */}
+                <div className="ch-table-wrapper">
+                  <table className="ch-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: "40px", textAlign: "center" }}>
+                          <input
+                            type="checkbox"
+                            checked={
+                              filteredStudents.length > 0 &&
+                              selectedEnrollmentIds.length === filteredStudents.length
+                            }
+                            onChange={toggleSelectAll}
+                            style={{ cursor: "pointer", width: "15px", height: "15px" }}
+                          />
+                        </th>
+                        <th>Student Name</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                        <th>Email Notification</th>
+                        <th style={{ textAlign: "right" }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loadingStudents ? (
+                        <tr>
+                          <td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+                            Loading students for {selectedCourseData.batchName}...
+                          </td>
+                        </tr>
+                      ) : filteredStudents.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+                            No enrolled students match the filter.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredStudents.map((s) => {
+                          const isProcessing = processingId === s.enrollmentId;
+                          const isChecked = selectedEnrollmentIds.includes(s.enrollmentId);
+
+                          return (
+                            <tr key={s.enrollmentId} className={isChecked ? "selected" : ""}>
+                              <td style={{ textAlign: "center" }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleSelectStudent(s.enrollmentId)}
+                                  style={{ cursor: "pointer", width: "15px", height: "15px" }}
+                                />
+                              </td>
+
+                              <td>
+                                <div style={{ fontWeight: 700, color: "#ffffff", fontSize: "13px" }}>
+                                  {s.studentName}
+                                </div>
+                                <div style={{ fontSize: "11px", color: "#94a3b8", fontFamily: "monospace" }}>
+                                  {s.studentEmail || "No registered email"}
+                                </div>
+                              </td>
+
+                              <td style={{ color: "#cbd5e1" }}>{s.department}</td>
+
+                              <td>
+                                {s.hasCertificate ? (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                    <span className="ch-badge ch-badge-issued">
+                                      <CheckCircle size={11} /> Issued
+                                    </span>
+                                    <span style={{ fontSize: "10px", color: "#64748b", fontFamily: "monospace" }}>
+                                      {s.certificateId}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="ch-badge ch-badge-pending">
+                                    <Clock size={11} /> Pending
+                                  </span>
+                                )}
+                              </td>
+
+                              <td>
+                                {s.certificateSent ? (
+                                  <span
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "4px",
+                                      color: "#34d399",
+                                      fontSize: "11px",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    <Mail size={13} color="#34d399" />
+                                    Emailed
+                                  </span>
+                                ) : s.hasCertificate ? (
+                                  <span style={{ color: "#64748b", fontSize: "11px" }}>Not Sent</span>
+                                ) : (
+                                  <span style={{ color: "#475569", fontSize: "11px" }}>—</span>
+                                )}
+                              </td>
+
+                              <td style={{ textAlign: "right" }}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "flex-end",
+                                    gap: "8px",
+                                  }}
+                                >
+                                  {s.hasCertificate ? (
+                                    <>
+                                      <Link
+                                        href={`/certificate/${encodeURIComponent(s.certificateId || "")}`}
+                                        target="_blank"
+                                        className="ch-btn ch-btn-outline"
+                                        style={{ padding: "6px 10px" }}
+                                        title="View Official Certificate"
+                                      >
+                                        <ExternalLink size={13} />
+                                        <span>View</span>
+                                      </Link>
+
+                                      <button
+                                        onClick={() => handleResendEmail(s.enrollmentId)}
+                                        disabled={isProcessing}
+                                        className="ch-btn ch-btn-outline"
+                                        style={{ padding: "6px 10px" }}
+                                        title="Resend email from codingclub@cuh.ac.in"
+                                      >
+                                        {isProcessing ? (
+                                          <RefreshCw size={12} className="animate-spin" />
+                                        ) : (
+                                          <Send size={12} />
+                                        )}
+                                        <span>Resend</span>
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleGenerateSingle(s.enrollmentId)}
+                                      disabled={isProcessing}
+                                      className="ch-btn ch-btn-primary"
+                                      style={{ padding: "6px 14px" }}
+                                    >
+                                      {isProcessing ? (
+                                        <RefreshCw size={13} className="animate-spin" />
+                                      ) : (
+                                        <GraduationCap size={14} />
+                                      )}
+                                      <span>Generate</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: "60px 20px", textAlign: "center", color: "#64748b" }}>
+                <GraduationCap size={40} style={{ margin: "0 auto 10px auto", opacity: 0.4 }} />
+                <div style={{ fontSize: "14px", fontWeight: 600 }}>Select a Course Batch</div>
+                <div style={{ fontSize: "12px", marginTop: "4px" }}>
+                  Choose a course on the left to view enrolled students and issue certificates with 1 click.
+                </div>
+              </div>
             )}
           </div>
         </div>
+      )}
 
-        {/* ── Right Column: Selected Batch Student Roster & Issuance Table ── */}
-        <div className="ch-card">
-          {selectedCourseData ? (
-            <>
-              {/* Batch Header Bar */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", paddingBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                <div>
-                  <span className="ch-badge ch-badge-issued" style={{ marginBottom: "6px" }}>
-                    Active Batch
-                  </span>
-                  <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#ffffff", margin: "4px 0 2px 0" }}>
-                    {selectedCourseData.batchName}
-                  </h2>
-                  <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
-                    {selectedCourseData.department} • Instructor: {selectedCourseData.instructorName}
-                  </p>
-                </div>
-
-                {/* Summary Metric Badges */}
-                <div className="ch-metrics-row">
-                  <div className="ch-metric-box">
-                    <div className="ch-metric-label">Total</div>
-                    <div className="ch-metric-val">{selectedCourseData.totalEnrolled}</div>
-                  </div>
-                  <div className="ch-metric-box" style={{ background: "rgba(16, 185, 129, 0.12)", borderColor: "rgba(16, 185, 129, 0.3)" }}>
-                    <div className="ch-metric-label" style={{ color: "#34d399" }}>Issued</div>
-                    <div className="ch-metric-val" style={{ color: "#34d399" }}>{selectedCourseData.issuedCount}</div>
-                  </div>
-                  <div className="ch-metric-box" style={{ background: "rgba(245, 158, 11, 0.12)", borderColor: "rgba(245, 158, 11, 0.3)" }}>
-                    <div className="ch-metric-label" style={{ color: "#fbbf24" }}>Pending</div>
-                    <div className="ch-metric-val" style={{ color: "#fbbf24" }}>{selectedCourseData.pendingCount}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Student Table Controls: Search, Tabs, Bulk Button */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginTop: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <button
-                    onClick={() => setStudentFilter("all")}
-                    className={`ch-tab-pill ${studentFilter === "all" ? "active" : ""}`}
-                  >
-                    All ({students.length})
-                  </button>
-                  <button
-                    onClick={() => setStudentFilter("pending")}
-                    className={`ch-tab-pill ${studentFilter === "pending" ? "active-amber" : ""}`}
-                  >
-                    Pending ({students.filter((s) => !s.hasCertificate).length})
-                  </button>
-                  <button
-                    onClick={() => setStudentFilter("issued")}
-                    className={`ch-tab-pill ${studentFilter === "issued" ? "active-emerald" : ""}`}
-                  >
-                    Issued ({students.filter((s) => s.hasCertificate).length})
-                  </button>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div className="ch-search-wrapper" style={{ margin: 0, width: "220px" }}>
-                    <Search size={14} className="ch-search-icon" />
-                    <input
-                      type="text"
-                      value={studentSearch}
-                      onChange={(e) => setStudentSearch(e.target.value)}
-                      placeholder="Search student or email..."
-                      className="ch-input"
-                    />
-                  </div>
-
-                  {/* Bulk Generate Action Button */}
-                  {selectedEnrollmentIds.length > 0 && (
-                    <button
-                      onClick={handleGenerateBulk}
-                      disabled={processingId === "bulk"}
-                      className="ch-btn ch-btn-primary"
-                    >
-                      {processingId === "bulk" ? (
-                        <RefreshCw size={14} className="animate-spin" />
-                      ) : (
-                        <GraduationCap size={15} />
-                      )}
-                      <span>Issue Selected ({selectedEnrollmentIds.length})</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Enrolled Students Table */}
-              <div className="ch-table-wrapper">
-                <table className="ch-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: "40px", textAlign: "center" }}>
-                        <input
-                          type="checkbox"
-                          checked={
-                            filteredStudents.length > 0 &&
-                            selectedEnrollmentIds.length === filteredStudents.length
-                          }
-                          onChange={toggleSelectAll}
-                          style={{ cursor: "pointer", width: "15px", height: "15px" }}
-                        />
-                      </th>
-                      <th>Student Name</th>
-                      <th>Department</th>
-                      <th>Status</th>
-                      <th>Email Notification</th>
-                      <th style={{ textAlign: "right" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loadingStudents ? (
-                      <tr>
-                        <td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
-                          Loading students for {selectedCourseData.batchName}...
-                        </td>
-                      </tr>
-                    ) : filteredStudents.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
-                          No enrolled students match the filter.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredStudents.map((s) => {
-                        const isProcessing = processingId === s.enrollmentId;
-                        const isChecked = selectedEnrollmentIds.includes(s.enrollmentId);
-
-                        return (
-                          <tr
-                            key={s.enrollmentId}
-                            className={isChecked ? "selected" : ""}
-                          >
-                            <td style={{ textAlign: "center" }}>
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => toggleSelectStudent(s.enrollmentId)}
-                                style={{ cursor: "pointer", width: "15px", height: "15px" }}
-                              />
-                            </td>
-
-                            <td>
-                              <div style={{ fontWeight: 700, color: "#ffffff", fontSize: "13px" }}>
-                                {s.studentName}
-                              </div>
-                              <div style={{ fontSize: "11px", color: "#94a3b8", fontFamily: "monospace" }}>
-                                {s.studentEmail || "No registered email"}
-                              </div>
-                            </td>
-
-                            <td style={{ color: "#cbd5e1" }}>
-                              {s.department}
-                            </td>
-
-                            <td>
-                              {s.hasCertificate ? (
-                                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                  <span className="ch-badge ch-badge-issued">
-                                    <CheckCircle size={11} /> Issued
-                                  </span>
-                                  <span style={{ fontSize: "10px", color: "#64748b", fontFamily: "monospace" }}>
-                                    {s.certificateId}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="ch-badge ch-badge-pending">
-                                  <Clock size={11} /> Pending
-                                </span>
-                              )}
-                            </td>
-
-                            <td>
-                              {s.certificateSent ? (
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#34d399", fontSize: "11px", fontWeight: 600 }}>
-                                  <Mail size={13} color="#34d399" />
-                                  Emailed
-                                </span>
-                              ) : s.hasCertificate ? (
-                                <span style={{ color: "#64748b", fontSize: "11px" }}>Not Sent</span>
-                              ) : (
-                                <span style={{ color: "#475569", fontSize: "11px" }}>—</span>
-                              )}
-                            </td>
-
-                            <td style={{ textAlign: "right" }}>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px" }}>
-                                {s.hasCertificate ? (
-                                  <>
-                                    <Link
-                                      href={`/certificate/${s.certificateId}`}
-                                      target="_blank"
-                                      className="ch-btn ch-btn-outline"
-                                      style={{ padding: "6px 10px" }}
-                                      title="View Official Certificate"
-                                    >
-                                      <ExternalLink size={13} />
-                                      <span>View</span>
-                                    </Link>
-
-                                    <button
-                                      onClick={() => handleResendEmail(s.enrollmentId)}
-                                      disabled={isProcessing}
-                                      className="ch-btn ch-btn-outline"
-                                      style={{ padding: "6px 10px" }}
-                                      title="Resend email from codingclub@cuh.ac.in"
-                                    >
-                                      {isProcessing ? (
-                                        <RefreshCw size={12} className="animate-spin" />
-                                      ) : (
-                                        <Send size={12} />
-                                      )}
-                                      <span>Resend</span>
-                                    </button>
-                                  </>
-                                ) : (
-                                  <button
-                                    onClick={() => handleGenerateSingle(s.enrollmentId)}
-                                    disabled={isProcessing}
-                                    className="ch-btn ch-btn-primary"
-                                    style={{ padding: "6px 14px" }}
-                                  >
-                                    {isProcessing ? (
-                                      <RefreshCw size={13} className="animate-spin" />
-                                    ) : (
-                                      <GraduationCap size={14} />
-                                    )}
-                                    <span>Generate</span>
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          ) : (
-            <div style={{ padding: "60px 20px", textAlign: "center", color: "#64748b" }}>
-              <GraduationCap size={40} style={{ margin: "0 auto 10px auto", opacity: 0.4 }} />
-              <div style={{ fontSize: "14px", fontWeight: 600 }}>Select a Course Batch</div>
-              <div style={{ fontSize: "12px", marginTop: "4px" }}>
-                Choose a course on the left to view enrolled students and issue certificates with 1 click.
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* ── Add Hard-Copy Certificate Modal ── */}
+      <HardCopyModal
+        isOpen={showHardCopyModal}
+        onClose={() => setShowHardCopyModal(false)}
+        onSuccess={() => {
+          fetchHardCopyCerts();
+        }}
+      />
 
       {/* ── Signature Adjuster & Preview Modal ── */}
       {showAdjusterModal && (
@@ -1165,7 +1657,16 @@ export default function CertificateHub() {
               padding: "20px",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "16px",
+                paddingBottom: "12px",
+                borderBottom: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <Eye size={20} color="#34d399" />
                 <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#ffffff" }}>
