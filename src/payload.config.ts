@@ -32,6 +32,7 @@ import { Courses } from "./payload/collections/Courses";
 import { Certificates } from "./payload/collections/Certificates";
 import { Objectives } from "./payload/collections/Objectives";
 import { Enrollments } from "./payload/collections/Enrollments";
+import { nodemailerEmailAdapter } from "./lib/payloadEmailAdapter";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -73,6 +74,7 @@ const getPayloadSecret = (): string => {
 
 export default buildConfig({
   serverURL: getServerSideURL(),
+  email: nodemailerEmailAdapter(),
   admin: {
     theme: "dark",
     meta: {

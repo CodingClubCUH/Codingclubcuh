@@ -306,6 +306,7 @@ export async function sendCertificateEmail({
     const transportConfig: any = isGmail
       ? {
         service: 'gmail',
+        family: 4,
         auth: {
           user: smtpUser,
           pass: cleanedPass,
@@ -315,6 +316,7 @@ export async function sendCertificateEmail({
         host: smtpHost,
         port: smtpPort,
         secure: smtpPort === 465,
+        family: 4,
         auth: {
           user: smtpUser,
           pass: cleanedPass,
@@ -517,6 +519,7 @@ export async function sendNoticeEmail({
     const transportConfig: any = isGmail
       ? {
         service: 'gmail',
+        family: 4,
         auth: {
           user: smtpUser,
           pass: cleanedPass,
@@ -526,6 +529,7 @@ export async function sendNoticeEmail({
         host: smtpHost,
         port: smtpPort,
         secure: smtpPort === 465,
+        family: 4,
         auth: {
           user: smtpUser,
           pass: cleanedPass,
@@ -648,8 +652,8 @@ export async function sendContactReplyEmail({
     const isGmail = smtpHost.includes('gmail.com') || smtpUser.includes('@gmail.com') || smtpUser.endsWith('@cuh.ac.in')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transportConfig: any = isGmail
-      ? { service: 'gmail', auth: { user: smtpUser, pass: smtpPass.trim().replace(/\s+/g, '') } }
-      : { host: smtpHost, port: smtpPort, secure: smtpPort === 465, auth: { user: smtpUser, pass: smtpPass.trim().replace(/\s+/g, '') } }
+      ? { service: 'gmail', family: 4, auth: { user: smtpUser, pass: smtpPass.trim().replace(/\s+/g, '') } }
+      : { host: smtpHost, port: smtpPort, secure: smtpPort === 465, family: 4, auth: { user: smtpUser, pass: smtpPass.trim().replace(/\s+/g, '') } }
 
     const transporter = nodemailer.createTransport(transportConfig)
     const info = await transporter.sendMail({

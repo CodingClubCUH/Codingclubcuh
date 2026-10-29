@@ -32,6 +32,7 @@ export async function POST(req: Request) {
 
     // Fail silently to prevent user enumeration attacks
     if (!user || !user.email) {
+      payload.logger.warn(`Password reset requested for unknown account: ${identifier}`)
       return NextResponse.json({
         success: true,
         message:
