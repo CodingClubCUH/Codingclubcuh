@@ -9,6 +9,7 @@ export const CLOUDINARY_UPLOAD_PRESET =
   ''
 
 export type CloudinaryFolder =
+  | 'certificate'
   | 'codingclub/events/coding-class'
   | 'codingclub/events/hackathon'
   | 'codingclub/events/workshops'
@@ -21,6 +22,7 @@ export type CloudinaryFolder =
   | 'codingclub/certificates'
   | 'codingclub/profiles'
   | 'codingclub/submissions'
+  | string
 
 export interface CloudinaryUploadResult {
   asset_id: string
@@ -49,7 +51,7 @@ export async function uploadToCloudinary(
   fileBuffer: Buffer,
   filename: string,
   mimetype: string,
-  folder: string = 'codingclub/gallery/2026',
+  folder: string = 'certificate',
 ): Promise<CloudinaryUploadResult> {
   const formData = new FormData()
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
@@ -81,4 +83,18 @@ export async function uploadToCloudinary(
 export function getCloudinaryTransformUrl(secureUrl: string, transformation: string): string {
   if (!secureUrl || !secureUrl.includes('/upload/')) return secureUrl
   return secureUrl.replace('/upload/', `/upload/${transformation}/`)
+}
+
+/**
+ * Returns a high-res image URL for displaying the certificate document.
+ * If the document is a PDF on Cloudinary, Cloudinary rasterizes it to a crystal-clear
+ * JPEG image (avoiding 401 ACL/delivery restrictions on raw PDF downloads).
+ */
+export function getCloudinaryDisplayUrl(url: string | null | undefined): string {
+  if (!url) return ''
+  if (!url.includes('res.cloudinary.com')) return url
+  if (url.toLowerCase().endsWith('.pdf')) {
+    return url.replace(/\.pdf($|\?)/i, '.jpg$1')
+  }
+  return url
 }

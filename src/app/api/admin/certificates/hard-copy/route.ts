@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { headers, cookies } from 'next/headers'
-import fs from 'fs'
-import path from 'path'
 import { uploadToCloudinary } from '@/payload/utilities/cloudinary'
 
 export const dynamic = 'force-dynamic'
@@ -214,89 +212,52 @@ export async function POST(req: Request) {
     let mediaFilename = sanitizedFileName
     let mediaDocId: number | string | null = null
 
-    // 5. Upload file to Cloudinary under 'codingclub/certificates' with local fallback
-    let uploadedToCloudinarySuccessfully = false
+    // 5. Upload file directly to Cloudinary under folder 'certificate'
+    payload.logger.info(`Uploading hard-copy certificate "${sanitizedFileName}" to Cloudinary under folder "certificate"...`)
+    
+    let uploadResult
     try {
-      if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_UPLOAD_PRESET) {
-        payload.logger.info(`Uploading hard-copy certificate "${sanitizedFileName}" to Cloudinary...`)
-        const uploadResult = await uploadToCloudinary(
-          buffer,
-          sanitizedFileName,
-          isPdf ? 'application/pdf' : file.type || 'image/jpeg',
-          'codingclub/certificates'
-        )
-
-        mediaUrl = uploadResult.secure_url
-        mediaFilename = `${uploadResult.public_id.split('/').pop()}.${uploadResult.format || (isPdf ? 'pdf' : 'jpg')}`
-
-        // Create Payload Media document
-        const mediaDoc = await payload.create({
-          collection: 'media',
-          overrideAccess: true,
-          data: {
-            alt: altText,
-            folder: 'certificates',
-            filename: mediaFilename,
-            url: mediaUrl,
-            filesize: uploadResult.bytes || buffer.length,
-            width: uploadResult.width || null,
-            height: uploadResult.height || null,
-            mimeType: isPdf ? 'application/pdf' : `image/${uploadResult.format || 'jpeg'}`,
-          },
-          file: {
-            data: buffer,
-            name: mediaFilename,
-            mimetype: isPdf ? 'application/pdf' : file.type || 'image/jpeg',
-            size: buffer.length,
-          },
-        })
-
-        mediaDocId = mediaDoc.id
-        uploadedToCloudinarySuccessfully = true
-        payload.logger.info(`Successfully stored hard-copy certificate on Cloudinary: ${mediaUrl}`)
-      }
-    } catch (cloudinaryError) {
-      payload.logger.warn(`Cloudinary upload failed (${cloudinaryError}), falling back to local media storage...`)
+      uploadResult = await uploadToCloudinary(
+        buffer,
+        sanitizedFileName,
+        isPdf ? 'application/pdf' : file.type || 'image/jpeg',
+        'certificate'
+      )
+    } catch (cloudErr) {
+      payload.logger.error(`Failed to upload certificate to Cloudinary: ${cloudErr}`)
+      return NextResponse.json(
+        { error: `Cloudinary upload failed: ${cloudErr instanceof Error ? cloudErr.message : 'Unknown cloud error'}` },
+        { status: 500 }
+      )
     }
 
-    // Fallback to local storage if Cloudinary not configured or failed
-    if (!uploadedToCloudinarySuccessfully) {
-      const publicMediaDir = path.resolve(process.cwd(), 'public/media')
-      if (!fs.existsSync(publicMediaDir)) {
-        fs.mkdirSync(publicMediaDir, { recursive: true })
-      }
+    mediaUrl = uploadResult.secure_url
+    mediaFilename = `${uploadResult.public_id.split('/').pop()}.${uploadResult.format || (isPdf ? 'pdf' : 'jpg')}`
 
-      const uniquePrefix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`
-      const localFileName = `${uniquePrefix}-${sanitizedFileName}`
-      const localFilePath = path.join(publicMediaDir, localFileName)
-      fs.writeFileSync(localFilePath, new Uint8Array(buffer))
-
-      mediaUrl = `/media/${localFileName}`
-      mediaFilename = localFileName
-
+    // 6. Persist Media record in Payload CMS
+    // Do NOT pass `file` buffer here to avoid sharp resizing error on PDFs and duplicate uploads
+    try {
       const mediaDoc = await payload.create({
         collection: 'media',
         overrideAccess: true,
         data: {
           alt: altText,
-          folder: 'certificates',
+          folder: 'certificate',
           filename: mediaFilename,
           url: mediaUrl,
-          filesize: buffer.length,
-          mimeType: isPdf ? 'application/pdf' : file.type || 'image/jpeg',
-        },
-        file: {
-          data: buffer,
-          name: mediaFilename,
-          mimetype: isPdf ? 'application/pdf' : file.type || 'image/jpeg',
-          size: buffer.length,
+          filesize: uploadResult.bytes || buffer.length,
+          width: uploadResult.width || null,
+          height: uploadResult.height || null,
+          mimeType: isPdf ? 'application/pdf' : `image/${uploadResult.format || 'jpeg'}`,
         },
       })
       mediaDocId = mediaDoc.id
-      payload.logger.info(`Stored hard-copy certificate locally at ${mediaUrl}`)
+      payload.logger.info(`Persisted media document #${mediaDoc.id} for hard-copy certificate.`)
+    } catch (mediaErr) {
+      payload.logger.warn(`Notice on media document persistence: ${mediaErr}`)
     }
 
-    // 6. Save Certificate document in database
+    // 7. Save Certificate document in database
     const parsedIssueDate = new Date(issueDate)
     const validIssueDate = isNaN(parsedIssueDate.getTime()) ? new Date().toISOString() : parsedIssueDate.toISOString()
 
@@ -316,11 +277,13 @@ export async function POST(req: Request) {
         course: course || 'Master of Computer Applications (M.C.A.)',
         semester: semester || '1st Semester',
         isIssued: true,
-        hardCopyFile: mediaDocId as number,
+        ...(mediaDocId ? { hardCopyFile: mediaDocId as number } : {}),
         hardCopyUrl: mediaUrl,
         ...(studentId ? { student: Number(studentId) } : {}),
       },
     })
+
+    payload.logger.info(`Successfully created hard-copy certificate ${certificateId} in database with URL: ${mediaUrl}`)
 
     return NextResponse.json({
       success: true,

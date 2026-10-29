@@ -495,10 +495,65 @@ export default function CertificateView() {
   );
   const isHardCopy = certData.certificateType === "hard_copy" || Boolean(hardCopyUrl);
 
+  // Deliverable image URL for crisp preview without Cloudinary 401 ACL/delivery restrictions on .pdf
+  const previewImageUrl = hardCopyUrl
+    ? hardCopyUrl.includes("res.cloudinary.com") && isPdf
+      ? hardCopyUrl.replace(/\.pdf($|\?)/i, ".jpg$1")
+      : hardCopyUrl
+    : null;
+
+  // 1-Click PDF Generator for Hard-Copy Certificate
+  const downloadHardCopyPdf = async () => {
+    const targetImg = previewImageUrl || hardCopyUrl;
+    if (!certData || !targetImg) return;
+    setIsDownloadingPdf(true);
+    try {
+      const img = await loadImage(targetImg);
+      const isLandscape = (img.naturalWidth || 1123) >= (img.naturalHeight || 794);
+      const pdf = new jsPDF({
+        orientation: isLandscape ? "landscape" : "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+      const pageWidth = isLandscape ? 297 : 210;
+      const pageHeight = isLandscape ? 210 : 297;
+      const margin = 5;
+      const maxW = pageWidth - margin * 2;
+      const maxH = pageHeight - margin * 2;
+      const imgW = img.naturalWidth || maxW;
+      const imgH = img.naturalHeight || maxH;
+      const aspect = imgW / imgH;
+      let renderW = maxW;
+      let renderH = maxW / aspect;
+      if (renderH > maxH) {
+        renderH = maxH;
+        renderW = maxH * aspect;
+      }
+      const posX = margin + (maxW - renderW) / 2;
+      const posY = margin + (maxH - renderH) / 2;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = imgW;
+      canvas.height = imgH;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      const imgData = canvas.toDataURL("image/jpeg", 0.98);
+
+      pdf.addImage(imgData, "JPEG", posX, posY, renderW, renderH);
+      const cleanName = certData.studentName.replace(/[^a-zA-Z0-9]/g, "_");
+      pdf.save(`Certificate_${cleanName}_${certData.certificateId}.pdf`);
+    } catch (err) {
+      console.error("Hard-copy PDF generation failed:", err);
+      if (hardCopyUrl) window.open(hardCopyUrl, "_blank");
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
   // ═══════════════════════════════════════════════════════════════════════════
   // VIEW: HARD-COPY CERTIFICATE PRESENTATION (Responsive Scanned Copy)
   // ═══════════════════════════════════════════════════════════════════════════
-  if (isHardCopy && hardCopyUrl) {
+  if (isHardCopy && (hardCopyUrl || previewImageUrl)) {
     return (
       <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col">
         {/* Top Header Bar */}
@@ -535,25 +590,42 @@ export default function CertificateView() {
             </Link>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors"
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors cursor-pointer"
             >
               <Printer size={15} /> Print
             </button>
+            {hardCopyUrl && (
+              <a
+                href={hardCopyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors"
+              >
+                <ExternalLink size={14} /> Open Original
+              </a>
+            )}
             <a
-              href={hardCopyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors"
+              href={previewImageUrl || hardCopyUrl || "#"}
+              download={`Certificate_${certData.studentName.replace(/[^a-zA-Z0-9]/g, "_")}_${certData.certificateId}.jpg`}
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 px-3.5 py-2 rounded-lg font-bold text-xs shadow-sm transition-all"
             >
-              <ExternalLink size={14} /> Open Original
+              <ImageIcon size={14} /> Save Image
             </a>
-            <a
-              href={hardCopyUrl}
-              download={`Certificate_${certData.studentName.replace(/[^a-zA-Z0-9]/g, "_")}_${certData.certificateId}.${isPdf ? "pdf" : "jpg"}`}
-              className="flex items-center gap-2 bg-[#137558] hover:bg-[#0e5641] text-white px-5 py-2 rounded-lg font-bold text-sm shadow-sm hover:shadow transition-all"
+            <button
+              onClick={downloadHardCopyPdf}
+              disabled={isDownloadingPdf}
+              className="flex items-center gap-2 bg-[#137558] hover:bg-[#0e5641] text-white px-5 py-2 rounded-lg font-bold text-sm shadow-sm hover:shadow transition-all cursor-pointer"
             >
-              <Download size={16} /> Download {isPdf ? "PDF" : "Certificate"}
-            </a>
+              {isDownloadingPdf ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Preparing PDF...
+                </>
+              ) : (
+                <>
+                  <Download size={16} /> Download PDF (1-Click)
+                </>
+              )}
+            </button>
           </div>
         </header>
 
@@ -598,24 +670,14 @@ export default function CertificateView() {
 
             {/* Document Render Area */}
             <div className="w-full flex justify-center bg-slate-50 rounded-xl p-3 sm:p-6 border border-slate-200">
-              {isPdf ? (
-                <div className="w-full">
-                  <iframe
-                    src={`${hardCopyUrl}#toolbar=0`}
-                    title="Certificate Document Preview"
-                    className="w-full h-[600px] sm:h-[800px] rounded-lg border border-slate-300 bg-white shadow-md"
-                  />
-                </div>
-              ) : (
-                <div className="max-w-4xl w-full flex justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={hardCopyUrl}
-                    alt={`Hard-copy Certificate for ${certData.studentName}`}
-                    className="max-w-full max-h-[82vh] rounded-lg shadow-xl border border-slate-200 object-contain bg-white"
-                  />
-                </div>
-              )}
+              <div className="max-w-4xl w-full flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewImageUrl || hardCopyUrl || ""}
+                  alt={`Hard-copy Certificate for ${certData.studentName}`}
+                  className="max-w-full max-h-[82vh] rounded-lg shadow-xl border border-slate-200 object-contain bg-white"
+                />
+              </div>
             </div>
 
             {/* Credential Details Bar */}

@@ -236,6 +236,7 @@ export interface Media {
    */
   folder?:
     | (
+        | 'certificate'
         | 'events/coding-class'
         | 'events/hackathon'
         | 'events/workshops'

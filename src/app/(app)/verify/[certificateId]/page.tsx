@@ -132,6 +132,13 @@ export default function CertificateVerificationPage() {
   );
   const isHardCopy = certData?.certificateType === "hard_copy" || Boolean(hardCopyUrl);
 
+  // Deliverable image URL for crisp preview without Cloudinary 401 ACL/delivery restrictions on .pdf
+  const previewImageUrl = hardCopyUrl
+    ? hardCopyUrl.includes("res.cloudinary.com") && isPdf
+      ? hardCopyUrl.replace(/\.pdf($|\?)/i, ".jpg$1")
+      : hardCopyUrl
+    : null;
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
@@ -263,7 +270,7 @@ export default function CertificateVerificationPage() {
                   {/* ─────────────────────────────────────────────────────────── */}
                   {/* HARD-COPY DOCUMENT EMBEDDED PREVIEW & ACTIONS               */}
                   {/* ─────────────────────────────────────────────────────────── */}
-                  {isHardCopy && hardCopyUrl && (
+                  {isHardCopy && (hardCopyUrl || previewImageUrl) && (
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                       <div className="p-4 sm:p-5 bg-slate-100/80 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
@@ -277,23 +284,22 @@ export default function CertificateVerificationPage() {
                               Original Hard-Copy Certificate
                             </h4>
                             <p className="text-xs text-slate-500">
-                              {isPdf ? "Uploaded PDF Document" : "Scanned High-Resolution Certificate"}
+                              {isPdf ? "Official Archived PDF Document" : "Scanned High-Resolution Certificate"}
                             </p>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-2 flex-wrap">
-                          <a
-                            href={hardCopyUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs"
+                          <button
+                            type="button"
+                            onClick={() => setLightboxOpen(true)}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
                           >
-                            <ExternalLink size={13} />
-                            Open Original
-                          </a>
+                            <Maximize2 size={13} />
+                            Enlarge
+                          </button>
                           <a
-                            href={hardCopyUrl}
+                            href={previewImageUrl || hardCopyUrl || "#"}
                             download={`Certificate_${certData.studentName.replace(/[^a-zA-Z0-9]/g, "_")}_${certData.certificateId}.${isPdf ? "pdf" : "jpg"}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -302,52 +308,47 @@ export default function CertificateVerificationPage() {
                             <Download size={13} />
                             Download
                           </a>
+                          {hardCopyUrl && (
+                            <a
+                              href={hardCopyUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-slate-100 text-slate-700 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors"
+                            >
+                              <ExternalLink size={13} />
+                              Open Original
+                            </a>
+                          )}
                         </div>
                       </div>
 
                       {/* Document Viewer Container */}
                       <div className="p-4 sm:p-6 bg-slate-100/40 flex flex-col items-center justify-center">
-                        {isPdf ? (
-                          <div className="w-full">
-                            <iframe
-                              src={`${hardCopyUrl}#toolbar=0`}
-                              title="Certificate Document Preview"
-                              className="w-full h-[450px] sm:h-[600px] rounded-lg border border-slate-200 bg-white shadow-inner"
+                        <div className="relative group max-w-full">
+                          <div className="relative rounded-xl overflow-hidden border border-slate-200 shadow-md bg-white">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={previewImageUrl || hardCopyUrl || ""}
+                              alt={`Official Certificate for ${certData.studentName}`}
+                              className="w-full max-h-[580px] object-contain transition-transform duration-300 group-hover:scale-[1.01]"
                             />
-                            <div className="mt-3 flex justify-between items-center text-xs text-slate-500 px-1">
-                              <span>Official PDF Document archived in Coding Club CUH repository.</span>
-                              <a
-                                href={hardCopyUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-semibold text-[#1a365d] hover:underline"
-                              >
-                                View Full Screen ↗
-                              </a>
-                            </div>
+                            <button
+                              onClick={() => setLightboxOpen(true)}
+                              className="absolute bottom-3 right-3 bg-black/75 hover:bg-black text-white p-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md backdrop-blur-xs cursor-pointer"
+                              title="Expand image"
+                            >
+                              <Maximize2 size={14} /> Enlarge
+                            </button>
                           </div>
-                        ) : (
-                          <div className="relative group max-w-full">
-                            <div className="relative rounded-xl overflow-hidden border border-slate-200 shadow-md bg-white">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={hardCopyUrl}
-                                alt={`Official Certificate for ${certData.studentName}`}
-                                className="w-full max-h-[550px] object-contain transition-transform duration-300 group-hover:scale-[1.01]"
-                              />
-                              <button
-                                onClick={() => setLightboxOpen(true)}
-                                className="absolute bottom-3 right-3 bg-black/75 hover:bg-black text-white p-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md backdrop-blur-xs"
-                                title="Expand image"
-                              >
-                                <Maximize2 size={14} /> Enlarge
-                              </button>
-                            </div>
-                            <p className="text-center text-xs text-slate-500 mt-2">
-                              Click &quot;Enlarge&quot; or &quot;Open Original&quot; to inspect watermark and security marks.
-                            </p>
+                          <div className="mt-2.5 flex items-center justify-between text-xs text-slate-500 px-1">
+                            <span>
+                              {isPdf
+                                ? "Official PDF Certificate archived in Cloudinary storage."
+                                : "Scanned hard-copy certificate archived in Cloudinary storage."}
+                            </span>
+                            <span className="font-medium text-emerald-700">✓ Authenticated Record</span>
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -362,7 +363,7 @@ export default function CertificateVerificationPage() {
                     </Link>
                     <button
                       onClick={() => router.push("/verify")}
-                      className="w-full sm:w-auto px-6 py-3.5 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-colors text-sm"
+                      className="w-full sm:w-auto px-6 py-3.5 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-colors text-sm cursor-pointer"
                     >
                       Verify Another
                     </button>
@@ -390,8 +391,8 @@ export default function CertificateVerificationPage() {
         </div>
       </main>
 
-      {/* Lightbox Modal for Hard-Copy Image */}
-      {lightboxOpen && hardCopyUrl && !isPdf && (
+      {/* Lightbox Modal for Hard-Copy Document */}
+      {lightboxOpen && (previewImageUrl || hardCopyUrl) && (
         <div
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
           onClick={() => setLightboxOpen(false)}
@@ -405,7 +406,7 @@ export default function CertificateVerificationPage() {
             </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={hardCopyUrl}
+              src={previewImageUrl || hardCopyUrl || ""}
               alt="Full-size Certificate Document"
               className="max-h-[85vh] max-w-full rounded-lg shadow-2xl object-contain bg-white"
               onClick={(e) => e.stopPropagation()}

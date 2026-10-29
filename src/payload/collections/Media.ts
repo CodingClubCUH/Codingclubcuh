@@ -1,5 +1,4 @@
 import type { CollectionConfig } from 'payload'
-import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -49,6 +48,7 @@ export const Media: CollectionConfig = {
               fileBuffer = Buffer.from(ab)
             } else if (fileObj.tempFilePath) {
               try {
+                const fs = await import('fs/promises')
                 fileBuffer = await fs.readFile(fileObj.tempFilePath)
               } catch (e) {
                 req.payload.logger.warn(`Could not read tempFilePath: ${e}`)
@@ -62,7 +62,12 @@ export const Media: CollectionConfig = {
           if (fileBuffer) {
             // Determine target Cloudinary folder based on user selection or default
             const subfolder = (data.folder as string) || 'gallery/2026'
-            const targetFolder = `codingclub/${subfolder}`
+            const targetFolder =
+              subfolder === 'certificate'
+                ? 'certificate'
+                : subfolder.startsWith('codingclub/')
+                  ? subfolder
+                  : `codingclub/${subfolder}`
 
             req.payload.logger.info(
               `Uploading file "${fileName}" to Cloudinary under "${targetFolder}"...`,
@@ -122,12 +127,21 @@ export const Media: CollectionConfig = {
         if (doc?.url && typeof doc.url === 'string') {
           if (doc.url.startsWith('/api/media/file/') && doc.filename) {
             const folder = doc.folder || 'gallery/2026'
-            doc.url = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/codingclub/${folder}/${doc.filename}`
+            const targetFolder =
+              folder === 'certificate'
+                ? 'certificate'
+                : folder.startsWith('codingclub/')
+                  ? folder
+                  : `codingclub/${folder}`
+            doc.url = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${targetFolder}/${doc.filename}`
           }
           if (doc.url.includes('res.cloudinary.com')) {
-            const isPdf = doc.url.toLowerCase().endsWith('.pdf') || (doc.mimeType && doc.mimeType.includes('pdf'));
+            const isPdf = doc.url.toLowerCase().endsWith('.pdf') || (doc.mimeType && doc.mimeType.includes('pdf'))
             if (!isPdf) {
-              doc.thumbnailURL = getCloudinaryTransformUrl(doc.url, 'w_300,c_limit');
+              doc.thumbnailURL = getCloudinaryTransformUrl(doc.url, 'w_300,c_limit')
+            } else {
+              // PDF preview thumbnail on Cloudinary is rendered as .jpg
+              doc.thumbnailURL = getCloudinaryTransformUrl(doc.url.replace(/\.pdf($|\?)/i, '.jpg$1'), 'w_300,c_limit')
             }
           }
         }
@@ -141,6 +155,7 @@ export const Media: CollectionConfig = {
       type: 'select',
       defaultValue: 'gallery/2026',
       options: [
+        { label: 'Certificates (Hard-Copy)', value: 'certificate' },
         { label: 'Events > Coding Class', value: 'events/coding-class' },
         { label: 'Events > Hackathon', value: 'events/hackathon' },
         { label: 'Events > Workshops', value: 'events/workshops' },
@@ -156,7 +171,7 @@ export const Media: CollectionConfig = {
       ],
       admin: {
         position: 'sidebar',
-        description: 'Destination folder in Cloudinary (under codingclub/)',
+        description: 'Destination folder in Cloudinary (e.g. certificate or codingclub/...)',
       },
     },
     {
