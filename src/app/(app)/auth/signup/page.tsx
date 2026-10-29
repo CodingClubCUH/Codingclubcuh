@@ -73,7 +73,7 @@ export default function SignupPage() {
       } else {
         toast.error(
           data.errors?.[0]?.message ||
-            "Failed to create account. Email or Roll No might already exist.",
+          "Failed to create account. Email or Roll No might already exist.",
         );
         setLoading(false);
       }
@@ -215,7 +215,7 @@ export default function SignupPage() {
               ) : (
                 <>
                   <UserPlus size={16} className="shrink-0" />
-                  <span>Register as Club Member</span>
+                  <span>Register</span>
                   <ArrowRight size={14} className="shrink-0 opacity-70" />
                 </>
               )}

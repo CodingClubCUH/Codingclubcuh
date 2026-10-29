@@ -158,7 +158,7 @@ export default function ContactSection() {
                       <Input
                         type="text"
                         id="name"
-                        placeholder="e.g. Ajay Sharma"
+                        placeholder="Name"
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
@@ -172,7 +172,7 @@ export default function ContactSection() {
                       <Input
                         type="email"
                         id="email"
-                        placeholder="e.g. ajay@example.com"
+                        placeholder="E-mail"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}

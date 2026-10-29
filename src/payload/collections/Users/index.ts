@@ -76,10 +76,14 @@ export const Users: CollectionConfig = {
       generateEmailHTML: async (args) => {
         const token = args?.token
         const user = args?.user
-        const serverURL =
+        const rawServerURL =
+          process.env.SITE_URL ||
           process.env.NEXT_PUBLIC_SERVER_URL ||
           process.env.URL ||
           'https://codingclubcuh.online'
+        const serverURL = (rawServerURL && !rawServerURL.includes('localhost'))
+          ? rawServerURL.replace(/\/+$/, '')
+          : 'https://codingclubcuh.online'
         const resetURL = `${serverURL}/auth/reset-password?token=${token}`
 
         return `
