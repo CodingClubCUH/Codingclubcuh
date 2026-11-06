@@ -108,37 +108,12 @@ async function buildFlawlessMaster() {
   }
 
   // -------------------------------------------------------------------
-  // B. FLAWLESS TOP-RIGHT WAVE (eliminating notch and seam permanently!)
+  // B. FLAWLESS TOP-RIGHT WAVE HEALING (NO MIRRORING, ZERO SEAMS, PRESERVES AUTHENTIC RIGHT BORDER)
   // -------------------------------------------------------------------
-  console.log('3. Synthesizing flawless top-right wave via symmetrical mirror...');
-  for (let y = 0; y <= 450; y++) {
-    for (let x = 0; x <= 620; x++) {
-      const srcIdx = (y * W + x) * 4;
-      const dstX = W - 1 - x;
-      const dstIdx = (y * W + dstX) * 4;
-
-      let weight = 1.0;
-      if (y > 380) {
-        weight *= (450 - y) / 70;
-      }
-      if (dstX < 1685) {
-        weight *= (dstX - 1625) / 60;
-      }
-
-      masterBuf[dstIdx] = Math.round(masterBuf[srcIdx] * weight + masterBuf[dstIdx] * (1 - weight));
-      masterBuf[dstIdx + 1] = Math.round(masterBuf[srcIdx + 1] * weight + masterBuf[dstIdx + 1] * (1 - weight));
-      masterBuf[dstIdx + 2] = Math.round(masterBuf[srcIdx + 2] * weight + masterBuf[dstIdx + 2] * (1 - weight));
-      masterBuf[dstIdx + 3] = 255;
-    }
-  }
-
-  // -------------------------------------------------------------------
-  // C. WIPE BOTTOM-LEFT & BOTTOM-CENTER TITLES
-  // -------------------------------------------------------------------
-  console.log('4. Wiping bottom-left and center legacy titles...');
-  // Wipe Program Instructor in x: 280..600, y: 1465..1530 to pure background
-  for (let y = 1465; y <= 1530; y++) {
-    for (let x = 280; x <= 600; x++) {
+  console.log('3. Healing top-right wave cutout notch with authentic streamline inpainting...');
+  // Wipe old CUH logo interior to pure background #f9f9f9:
+  for (let y = 56; y <= 280; y++) {
+    for (let x = 1710; x <= 1895; x++) {
       const idx = (y * W + x) * 4;
       masterBuf[idx] = 249;
       masterBuf[idx + 1] = 249;
@@ -147,79 +122,277 @@ async function buildFlawlessMaster() {
     }
   }
 
-  // Inpaint the 'P' and 'r' in x: 245..280, y: 1475..1520 seamlessly along wave
-  const pMask = new Uint8Array(W * H);
-  for (let y = 1475; y <= 1520; y++) {
-    for (let x = 245; x <= 280; x++) {
+  // Clear any old logo artifacts (non-wave colors) in x: 1710..1915, y: 50..280
+  for (let y = 50; y <= 280; y++) {
+    for (let x = 1710; x <= 1915; x++) {
+      const idx = (y * W + x) * 4;
+      const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+      if (r > g || b > g || Math.abs(r - g) < 5 || r < 130) {
+        masterBuf[idx] = 249;
+        masterBuf[idx + 1] = 249;
+        masterBuf[idx + 2] = 249;
+        masterBuf[idx + 3] = 255;
+      }
+    }
+  }
+
+  // Clear residual 1px box edge artifact from old template at x: 1940..1950, y: 180..350 to pure 249
+  for (let y = 180; y <= 350; y++) {
+    for (let x = 1940; x <= 1950; x++) {
+      const idx = (y * W + x) * 4;
+      const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+      if (Math.abs(g - r) <= 2) {
+        masterBuf[idx] = 249;
+        masterBuf[idx + 1] = 249;
+        masterBuf[idx + 2] = 249;
+        masterBuf[idx + 3] = 255;
+      }
+    }
+  }
+
+  // Identify the full cutout notch region in x: 1760..1955, y: 30..220
+  function getInnerWaveY(px) {
+    if (px <= 1760) return 42;
+    if (px <= 1820) return 42 + (px - 1760) * (13 / 60);
+    return 55 + (px - 1820) * (155 / 135);
+  }
+
+  const notchMask = new Uint8Array(W * H);
+  for (let y = 30; y <= 220; y++) {
+    for (let x = 1760; x <= 1955; x++) {
       const idx = (y * W + x) * 4;
       const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
       const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-      if (lum < 205 && Math.abs(r - g) < 20 && Math.abs(g - b) < 20) {
-        pMask[y * W + x] = 1;
+      if (y <= getInnerWaveY(x) && lum >= 244 && Math.abs(g - r) <= 4) {
+        notchMask[y * W + x] = 1;
       }
     }
   }
 
-  const dilatedP = new Uint8Array(W * H);
-  for (let y = 1473; y <= 1522; y++) {
-    for (let x = 243; x <= 282; x++) {
+  // Dilate notch mask by 2px
+  const dilatedNotch = new Uint8Array(W * H);
+  for (let y = 28; y <= 222; y++) {
+    for (let x = 1758; x <= 1957; x++) {
       let m = 0;
       for (let dy = -2; dy <= 2; dy++) {
         for (let dx = -2; dx <= 2; dx++) {
-          if (pMask[(y + dy) * W + (x + dx)]) { m = 1; break; }
+          if (dx * dx + dy * dy <= 5) {
+            const ny = y + dy, nx = x + dx;
+            if (notchMask[ny * W + nx]) { m = 1; break; }
+          }
         }
         if (m) break;
       }
-      dilatedP[y * W + x] = m;
+      dilatedNotch[y * W + x] = m;
     }
   }
 
-  for (let y = 1473; y <= 1522; y++) {
-    for (let x = 243; x <= 282; x++) {
-      if (dilatedP[y * W + x]) {
-        let leftC = null, rightC = null;
-        for (let dx = 1; dx <= 30; dx++) {
-          if (x - dx >= 0 && !dilatedP[y * W + (x - dx)]) {
-            const idx = (y * W + (x - dx)) * 4;
-            leftC = [masterBuf[idx], masterBuf[idx + 1], masterBuf[idx + 2], dx];
-            break;
+  // Inpaint along authentic filament slope (slope = 0.65)
+  const trSlope = 0.65;
+  for (let y = 28; y <= 222; y++) {
+    for (let x = 1758; x <= 1957; x++) {
+      if (dilatedNotch[y * W + x]) {
+        let cRight = null, cLeft = null;
+        for (let s = 1; s <= 60; s++) {
+          const sx = Math.round(x + s);
+          const sy = Math.round(y + s * trSlope);
+          if (sx < W && sy < H && !dilatedNotch[sy * W + sx]) {
+            const idx = (sy * W + sx) * 4;
+            const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            if (lum < 246 || g > r + 3) {
+              cRight = [r, g, b, s];
+              break;
+            }
           }
         }
-        for (let dx = 1; dx <= 30; dx++) {
-          if (x + dx < W && !dilatedP[y * W + (x + dx)]) {
-            const idx = (y * W + (x + dx)) * 4;
-            rightC = [masterBuf[idx], masterBuf[idx + 1], masterBuf[idx + 2], dx];
-            break;
+        for (let s = 1; s <= 60; s++) {
+          const sx = Math.round(x - s);
+          const sy = Math.round(y - s * trSlope);
+          if (sx >= 0 && sy >= 0 && !dilatedNotch[sy * W + sx]) {
+            const idx = (sy * W + sx) * 4;
+            const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            if (lum < 246 || g > r + 3) {
+              cLeft = [r, g, b, s];
+              break;
+            }
           }
         }
-        if (leftC && rightC) {
-          const t = leftC[3] / (leftC[3] + rightC[3]);
-          const idx = (y * W + x) * 4;
-          masterBuf[idx] = Math.round(leftC[0] * (1 - t) + rightC[0] * t);
-          masterBuf[idx + 1] = Math.round(leftC[1] * (1 - t) + rightC[1] * t);
-          masterBuf[idx + 2] = Math.round(leftC[2] * (1 - t) + rightC[2] * t);
+
+        const idx = (y * W + x) * 4;
+        if (cRight && cLeft) {
+          const t = cLeft[3] / (cLeft[3] + cRight[3]);
+          masterBuf[idx] = Math.round(cLeft[0] * (1 - t) + cRight[0] * t);
+          masterBuf[idx + 1] = Math.round(cLeft[1] * (1 - t) + cRight[1] * t);
+          masterBuf[idx + 2] = Math.round(cLeft[2] * (1 - t) + cRight[2] * t);
+        } else if (cRight) {
+          masterBuf[idx] = cRight[0]; masterBuf[idx + 1] = cRight[1]; masterBuf[idx + 2] = cRight[2];
+        } else if (cLeft) {
+          masterBuf[idx] = cLeft[0]; masterBuf[idx + 1] = cLeft[1]; masterBuf[idx + 2] = cLeft[2];
         }
       }
     }
   }
 
-  for (let iter = 0; iter < 80; iter++) {
-    for (let y = 1473; y <= 1522; y++) {
-      for (let x = 243; x <= 282; x++) {
-        if (dilatedP[y * W + x]) {
+  // 100 iterations 2D relaxation along filament
+  for (let iter = 0; iter < 100; iter++) {
+    for (let y = 29; y <= 221; y++) {
+      for (let x = 1759; x <= 1956; x++) {
+        if (dilatedNotch[y * W + x]) {
           const idx = (y * W + x) * 4;
           const idxL = (y * W + (x - 1)) * 4;
           const idxR = (y * W + (x + 1)) * 4;
           const idxU = ((y - 1) * W + x) * 4;
           const idxD = ((y + 1) * W + x) * 4;
           for (let c = 0; c < 3; c++) {
-            masterBuf[idx + c] = Math.round(((masterBuf[idxL + c] + masterBuf[idxR + c]) * 4 + (masterBuf[idxU + c] + masterBuf[idxD + c]) * 2) / 12);
+            masterBuf[idx + c] = Math.round(((masterBuf[idxL + c] + masterBuf[idxR + c]) * 5 + (masterBuf[idxU + c] + masterBuf[idxD + c]) * 3) / 16);
           }
         }
       }
     }
   }
 
+  // -------------------------------------------------------------------
+  // C. WIPE BOTTOM-LEFT PROGRAM INSTRUCTOR PRESERVING 100% CONTINUOUS SILK WAVE
+  // -------------------------------------------------------------------
+  console.log('4. Wiping bottom-left legacy title with 100% continuous silk ribbons (no white box!)...');
+  function getWaveY(px) {
+    if (px <= 270) return 1450;
+    if (px >= 420) return 1538;
+    return 1450 + (px - 270) * (88 / 150);
+  }
+
+  // 1. Outside wave ribbon: x >= 425, y: 1465..1530 to pure background 249
+  for (let y = 1465; y <= 1530; y++) {
+    for (let x = 425; x <= 600; x++) {
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = 249;
+      masterBuf[idx + 1] = 249;
+      masterBuf[idx + 2] = 249;
+      masterBuf[idx + 3] = 255;
+    }
+  }
+
+  // Also above wave ribbon for x between 360 and 425:
+  for (let x = 360; x <= 425; x++) {
+    const wy = getWaveY(x);
+    for (let y = 1465; y < wy; y++) {
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = 249;
+      masterBuf[idx + 1] = 249;
+      masterBuf[idx + 2] = 249;
+      masterBuf[idx + 3] = 255;
+    }
+  }
+
+  // 2. Identify text glyph pixels in x: 235..425, y: 1472..1525
+  const textMask = new Uint8Array(W * H);
+  for (let y = 1472; y <= 1525; y++) {
+    for (let x = 235; x <= 425; x++) {
+      const idx = (y * W + x) * 4;
+      const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      if (lum < 192 || (lum < 215 && (g - r) < 8)) {
+        textMask[y * W + x] = 1;
+      }
+    }
+  }
+
+  // Dilate by 2px
+  const dilatedText = new Uint8Array(W * H);
+  for (let y = 1470; y <= 1527; y++) {
+    for (let x = 233; x <= 427; x++) {
+      let m = 0;
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (dx * dx + dy * dy <= 5) {
+            const ny = y + dy, nx = x + dx;
+            if (ny >= 0 && ny < H && nx >= 0 && nx < W && textMask[ny * W + nx]) {
+              m = 1; break;
+            }
+          }
+        }
+        if (m) break;
+      }
+      dilatedText[y * W + x] = m;
+    }
+  }
+
+  // Pixels above wave become pure background
+  for (let y = 1470; y <= 1527; y++) {
+    for (let x = 233; x <= 427; x++) {
+      if (dilatedText[y * W + x]) {
+        const waveY = getWaveY(x);
+        if (y < waveY) {
+          const idx = (y * W + x) * 4;
+          masterBuf[idx] = 249;
+          masterBuf[idx + 1] = 249;
+          masterBuf[idx + 2] = 249;
+          dilatedText[y * W + x] = 0;
+        }
+      }
+    }
+  }
+
+  // Inpaint along authentic wave filament slope (slope = 0.33)
+  const blSlope = 0.33;
+  for (let y = 1470; y <= 1527; y++) {
+    for (let x = 233; x <= 427; x++) {
+      if (dilatedText[y * W + x]) {
+        let c1 = null, c2 = null;
+        for (let s = 1; s <= 20; s++) {
+          const x1 = Math.round(x + s);
+          const y1 = Math.round(y + s * blSlope);
+          if (x1 < W && y1 < H && !dilatedText[y1 * W + x1] && !textMask[y1 * W + x1]) {
+            const idx = (y1 * W + x1) * 4;
+            c1 = [data4a[idx], data4a[idx + 1], data4a[idx + 2], s];
+            break;
+          }
+        }
+        for (let s = 1; s <= 20; s++) {
+          const x2 = Math.round(x - s);
+          const y2 = Math.round(y - s * blSlope);
+          if (x2 >= 0 && y2 >= 0 && !dilatedText[y2 * W + x2] && !textMask[y2 * W + x2]) {
+            const idx = (y2 * W + x2) * 4;
+            c2 = [data4a[idx], data4a[idx + 1], data4a[idx + 2], s];
+            break;
+          }
+        }
+        const idx = (y * W + x) * 4;
+        if (c1 && c2) {
+          const t = c1[3] / (c1[3] + c2[3]);
+          masterBuf[idx] = Math.round(c1[0] * (1 - t) + c2[0] * t);
+          masterBuf[idx + 1] = Math.round(c1[1] * (1 - t) + c2[1] * t);
+          masterBuf[idx + 2] = Math.round(c1[2] * (1 - t) + c2[2] * t);
+        } else if (c1) {
+          masterBuf[idx] = c1[0]; masterBuf[idx + 1] = c1[1]; masterBuf[idx + 2] = c1[2];
+        } else if (c2) {
+          masterBuf[idx] = c2[0]; masterBuf[idx + 1] = c2[1]; masterBuf[idx + 2] = c2[2];
+        }
+      }
+    }
+  }
+
+  // 20 passes relaxation along filament
+  for (let iter = 0; iter < 20; iter++) {
+    for (let y = 1471; y <= 1526; y++) {
+      for (let x = 234; x <= 426; x++) {
+        if (dilatedText[y * W + x]) {
+          const idx = (y * W + x) * 4;
+          const idxL = (y * W + (x - 1)) * 4;
+          const idxR = (y * W + (x + 1)) * 4;
+          const idxU = ((y - 1) * W + x) * 4;
+          const idxD = ((y + 1) * W + x) * 4;
+          for (let c = 0; c < 3; c++) {
+            masterBuf[idx + c] = Math.round(((masterBuf[idxL + c] + masterBuf[idxR + c]) * 5 + (masterBuf[idxU + c] + masterBuf[idxD + c])) / 12);
+          }
+        }
+      }
+    }
+  }
+
+  // Wipe center Coordinator to pure 249
   for (let y = 1465; y <= 1530; y++) {
     for (let x = 930; x <= 1320; x++) {
       const idx = (y * W + x) * 4;
