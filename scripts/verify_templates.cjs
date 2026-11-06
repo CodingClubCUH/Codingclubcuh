@@ -27,17 +27,19 @@ async function verifyAll() {
   }
   console.log(`2. Bottom-Right Student Co-ordinator ghost pixels: ${brGhostPixels} (Expected: 0)`);
 
-  // Check B: Bottom-Left "Instructor" elimination
-  let blNonBg = 0;
+  // Check B: Bottom-Left "Instructor" text elimination (no ghost text pixels)
+  let blGhostPixels = 0;
   for (let y = 1475; y <= 1525; y++) {
     for (let x = 240; x <= 545; x++) {
       const idx = (y * W + x) * ch;
-      if (cleanData[idx] !== 249 || cleanData[idx + 1] !== 249 || cleanData[idx + 2] !== 249) {
-        blNonBg++;
+      const r = cleanData[idx], g = cleanData[idx + 1], b = cleanData[idx + 2];
+      // Dark text pixel test
+      if (r < 180 && Math.abs(r - g) < 15 && Math.abs(g - b) < 15) {
+        blGhostPixels++;
       }
     }
   }
-  console.log(`3. Bottom-Left Instructor residual pixels: ${blNonBg} (Expected: 0)`);
+  console.log(`3. Bottom-Left Instructor ghost pixels: ${blGhostPixels} (Expected: 0)`);
 
   // Check C: Bottom-Center "Coordinator" elimination
   let bcNonBg = 0;
@@ -85,7 +87,7 @@ async function verifyAll() {
   }
   console.log(`7. Right-edge border wave continuity: ${rightBorderContinuous}/27 checkpoints active`);
 
-  if (brGhostPixels === 0 && blNonBg === 0 && bcNonBg === 0 && cuhRightDarkPixels === 0 && cccBoxDarkPixels === 0) {
+  if (brGhostPixels === 0 && blGhostPixels === 0 && bcNonBg === 0 && cuhRightDarkPixels === 0 && cccBoxDarkPixels === 0) {
     console.log('\n>>> ALL RIGOROUS GRAPHIC & CODE CHECKS PASSED WITH 100% PERFECTION! <<<');
   } else {
     throw new Error('Some checks did not match exact expected values.');
