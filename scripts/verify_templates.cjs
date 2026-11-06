@@ -143,10 +143,22 @@ async function verifyAll() {
   }
   console.log(`10. Ceiling top border wave continuity: ${ceilingWaveCheckpoints}/6 checkpoints active`);
 
+  // Check J: Header "CENTRAL UNIVERSITY OF HARYANA" intact check
+  let cuhSubtitlePixels = 0;
+  for (let y = 192; y <= 218; y++) {
+    for (let x = 740; x <= 1510; x++) {
+      const idx = (y * W + x) * ch;
+      if (cleanData[idx] < 60 && cleanData[idx + 1] < 80 && cleanData[idx + 2] < 120) {
+        cuhSubtitlePixels++;
+      }
+    }
+  }
+  console.log(`11. "CENTRAL UNIVERSITY OF HARYANA" subtitle letter pixels: ${cuhSubtitlePixels} (Expected > 1500)`);
+
   if (brGhostPixels === 0 && blGhostPixels === 0 && bcNonBg === 0 &&
       tlTealCheckpoints === 7 && trWaveCheckpoints === 7 && cccBoxDarkPixels === 0 &&
-      dividerGhostPixels === 0 && ceilingWaveCheckpoints === 6) {
-    console.log('\n>>> ALL 10 RIGOROUS GRAPHIC & CODE CHECKS PASSED WITH 100% PERFECTION! <<<');
+      dividerGhostPixels === 0 && ceilingWaveCheckpoints === 6 && cuhSubtitlePixels > 1500) {
+    console.log('\n>>> ALL 11 RIGOROUS GRAPHIC & CODE CHECKS PASSED WITH 100% PERFECTION! <<<');
   } else {
     throw new Error('Some checks did not match exact expected values.');
   }

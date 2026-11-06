@@ -445,9 +445,10 @@ async function buildFlawlessMaster() {
   // E. CLEAN HEADER DIVIDER & CENTERED VECTOR ORNAMENT (Zero Stray Artifacts)
   // -------------------------------------------------------------------
   console.log('6. Cleaning header divider area and generating ornament...');
-  // Completely wipe entire region between header text and title CERTIFICATE to pure 249
-  // This eradicates any ghost chopped flower ornament at y: 260..295, x: 1000..1120
-  for (let y = 170; y <= 320; y++) {
+  // Completely wipe region around divider line (y: 230..310, x: 500..1720) to pure 249
+  // This eradicates the ghost chopped flower ornament at y: 260..295, x: 1000..1120
+  // while PRESERVING both "CODING CLUB CUH" (y: 100..165) and "CENTRAL UNIVERSITY OF HARYANA" (y: 192..218)!
+  for (let y = 230; y <= 310; y++) {
     for (let x = 500; x <= 1720; x++) {
       const idx = (y * W + x) * 4;
       masterBuf[idx] = 249;
