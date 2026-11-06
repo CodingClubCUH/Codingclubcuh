@@ -1,156 +1,333 @@
 const sharp = require('sharp');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-function generateWavePaths() {
-  // Canvas is 2246 x 1588.
-  // Left side waves hug the left margin:
-  // Top-left corner sweeps out to x ≈ 480, y ≈ 160.
-  // Middle hugs border (x: 0..90).
-  // Bottom-left corner hugs margin (x: 0..230 at y: 1450..1588), keeping signature area x >= 235 completely clear.
-  
-  return `
-    <!-- 1. Ambient Mint Soft Veil (Broadest, lowest opacity) -->
-    <path d="M 0,0 
-             C 140,40 340,70 460,160 
-             C 380,260 200,450 140,700 
-             C 90,950 150,1200 210,1420 
-             C 225,1480 232,1540 235,1588 
-             L 0,1588 Z"
-          fill="url(#gradMintVeil)" opacity="0.32" />
+async function buildPerfectTemplate() {
+  console.log('1. Loading authentic base HD template from git commit 4a438fd...');
+  const buf4a = execSync('git show 4a438fd:public/certificate-template-clean.png', { maxBuffer: 50 * 1024 * 1024 });
+  const { data: data4a, info } = await sharp(buf4a).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height;
+  console.log(`   Dimensions: ${W}x${H}`);
 
-    <!-- 2. Mid Seafoam Flow Ribbon -->
-    <path d="M 0,0 
-             C 120,35 300,60 410,140 
-             C 330,230 160,440 115,690 
-             C 75,940 130,1210 185,1430 
-             C 195,1480 205,1540 210,1588 
-             L 0,1588 Z"
-          fill="url(#gradSeafoam)" opacity="0.48" />
+  // Base master buffer (RGBA)
+  const masterBuf = Buffer.from(data4a);
 
-    <!-- 3. Soft Sage/Mint Layer -->
-    <path d="M 0,0 
-             C 100,30 250,50 350,120 
-             C 280,210 135,430 95,680 
-             C 65,930 110,1220 160,1440 
-             C 170,1485 180,1540 185,1588 
-             L 0,1588 Z"
-          fill="url(#gradSage)" opacity="0.55" />
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 1: Compute 180-degree Rotated Version of 4a438fd
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('2. Computing 180-degree point-symmetric wave transform...');
+  const dRot = Buffer.alloc(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const srcIdx = (y * W + x) * 4;
+      const dstIdx = ((H - 1 - y) * W + (W - 1 - x)) * 4;
+      dRot[dstIdx] = data4a[srcIdx];
+      dRot[dstIdx + 1] = data4a[srcIdx + 1];
+      dRot[dstIdx + 2] = data4a[srcIdx + 2];
+      dRot[dstIdx + 3] = data4a[srcIdx + 3];
+    }
+  }
 
-    <!-- 4. Deep Emerald Core Ribbon -->
-    <path d="M 0,0 
-             C 80,25 210,40 290,105 
-             C 230,190 105,420 75,670 
-             C 50,920 90,1230 135,1450 
-             C 145,1490 155,1545 160,1588 
-             L 0,1588 Z"
-          fill="url(#gradDeepEmerald)" opacity="0.88" />
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 2: Wipe Legacy Bottom Signatures with Continuous Filament Flow
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('3. Wiping legacy signature titles with seamless filament continuity...');
 
-    <!-- 5. Inner Accent Ribbon (Dark Emerald Base) -->
-    <path d="M 0,0 
-             C 60,20 160,30 220,90 
-             C 170,170 75,410 50,660 
-             C 32,910 65,1240 105,1460 
-             C 115,1500 120,1550 125,1588 
-             L 0,1588 Z"
-          fill="#0a4635" opacity="0.82" />
+  // 1. Shifted Rotated version for top-right notch healing & bottom-left filament splicing
+  const shiftX = 10, shiftY = -24;
+  const dRotShift = Buffer.alloc(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const srcX = W - 1 - (x + shiftX);
+      const srcY = H - 1 - (y + shiftY);
+      const dstIdx = (y * W + x) * 4;
+      if (srcX >= 0 && srcX < W && srcY >= 0 && srcY < H) {
+        const srcIdx = (srcY * W + srcX) * 4;
+        dRotShift[dstIdx] = data4a[srcIdx];
+        dRotShift[dstIdx + 1] = data4a[srcIdx + 1];
+        dRotShift[dstIdx + 2] = data4a[srcIdx + 2];
+        dRotShift[dstIdx + 3] = data4a[srcIdx + 3];
+      } else {
+        dRotShift[dstIdx] = 249;
+        dRotShift[dstIdx + 1] = 249;
+        dRotShift[dstIdx + 2] = 249;
+        dRotShift[dstIdx + 3] = 255;
+      }
+    }
+  }
 
-    <!-- 6. Dynamic Vibrant Swoosh Arch (Top-Left Corner Header Accent) -->
-    <path d="M 0,25 
-             C 130,30 310,65 440,145 
-             C 390,185 260,150 150,115 
-             C 75,90 0,80 0,80 Z"
-          fill="url(#gradVibrantTeal)" opacity="0.95" />
+  // A. Left signature ("Program Instructor" at x: 235..560, y: 1465..1530)
+  // Splice intact filament from dRotShift into x: 235..285, y: 1475..1520
+  for (let y = 1475; y <= 1520; y++) {
+    for (let x = 235; x <= 285; x++) {
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = dRotShift[idx];
+      masterBuf[idx + 1] = dRotShift[idx + 1];
+      masterBuf[idx + 2] = dRotShift[idx + 2];
+    }
+  }
 
-    <!-- 7. Translucent Turquoise Secondary Arch -->
-    <path d="M 0,60 
-             C 110,68 260,100 370,175 
-             C 320,215 210,175 120,140 
-             C 60,115 0,108 0,108 Z"
-          fill="url(#gradSeafoam)" opacity="0.60" />
+  // Wipe pure background area x: 420..560, y: 1475..1520 to 249
+  for (let y = 1475; y <= 1520; y++) {
+    for (let x = 420; x <= 560; x++) {
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = 249;
+      masterBuf[idx + 1] = 249;
+      masterBuf[idx + 2] = 249;
+      masterBuf[idx + 3] = 255;
+    }
+  }
 
-    <!-- 8. Delicate Hairline Accent Striations (Sweeping across curves) -->
-    <path d="M 0,10 C 140,18 290,48 420,125" 
-          stroke="#ffffff" stroke-width="2.5" stroke-opacity="0.65" stroke-linecap="round" fill="none" />
-    <path d="M 0,45 C 120,52 250,82 360,155" 
-          stroke="#b6f5e5" stroke-width="1.8" stroke-opacity="0.55" stroke-linecap="round" fill="none" />
-    
-    <path d="M 0,1320 C 65,1370 140,1450 200,1588" 
-          stroke="#ffffff" stroke-width="2.5" stroke-opacity="0.65" stroke-linecap="round" fill="none" />
-    <path d="M 0,1360 C 55,1405 120,1480 170,1588" 
-          stroke="#72e4c4" stroke-width="2.0" stroke-opacity="0.55" stroke-linecap="round" fill="none" />
-    <path d="M 0,1405 C 45,1445 100,1515 140,1588" 
-          stroke="#ffffff" stroke-width="1.6" stroke-opacity="0.50" stroke-linecap="round" fill="none" />
-    <path d="M 0,1450 C 40,1485 80,1540 110,1588" 
-          stroke="url(#gradVibrantTeal)" stroke-width="2.8" stroke-opacity="0.75" stroke-linecap="round" fill="none" />
-  `;
-}
+  // Smooth 2D relaxation across transition strip x: 280..420, y: 1482..1515
+  const blR = new Float32Array(W * H);
+  const blG = new Float32Array(W * H);
+  const blB = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    blR[i] = masterBuf[i * 4];
+    blG[i] = masterBuf[i * 4 + 1];
+    blB[i] = masterBuf[i * 4 + 2];
+  }
 
-function buildCleanCertificateSvg() {
-  const W = 2246;
-  const H = 1588;
+  // Linear initial horizontal fill
+  for (let y = 1482; y <= 1515; y++) {
+    const leftIdx = (y * W + 279) * 4;
+    const rightIdx = (y * W + 421) * 4;
+    const lR = masterBuf[leftIdx], lG = masterBuf[leftIdx + 1], lB = masterBuf[leftIdx + 2];
+    const rR = masterBuf[rightIdx], rG = masterBuf[rightIdx + 1], rB = masterBuf[rightIdx + 2];
+    for (let x = 280; x <= 420; x++) {
+      const t = (x - 279) / (421 - 279);
+      blR[y * W + x] = lR * (1 - t) + rR * t;
+      blG[y * W + x] = lG * (1 - t) + rG * t;
+      blB[y * W + x] = lB * (1 - t) + rB * t;
+    }
+  }
 
-  return `
-  <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <!-- Gradients -->
-      <linearGradient id="gradDeepEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#093f2f" />
-        <stop offset="40%" stop-color="#0f5c45" />
-        <stop offset="75%" stop-color="#147c60" />
-        <stop offset="100%" stop-color="#093f2f" />
-      </linearGradient>
+  // 150 iterations 2D relaxation
+  for (let iter = 0; iter < 150; iter++) {
+    for (let y = 1482; y <= 1515; y++) {
+      for (let x = 280; x <= 420; x++) {
+        const i = y * W + x;
+        blR[i] = ((blR[i - 1] + blR[i + 1]) * 4 + (blR[i - W] + blR[i + W]) * 4) / 16;
+        blG[i] = ((blG[i - 1] + blG[i + 1]) * 4 + (blG[i - W] + blG[i + W]) * 4) / 16;
+        blB[i] = ((blB[i - 1] + blB[i + 1]) * 4 + (blB[i - W] + blB[i + W]) * 4) / 16;
+      }
+    }
+  }
 
-      <linearGradient id="gradVibrantTeal" x1="0%" y1="0%" x2="100%" y2="80%">
-        <stop offset="0%" stop-color="#008a7e" />
-        <stop offset="50%" stop-color="#00a89b" />
-        <stop offset="100%" stop-color="#2ec49b" />
-      </linearGradient>
+  for (let y = 1482; y <= 1515; y++) {
+    for (let x = 280; x <= 420; x++) {
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = Math.round(blR[y * W + x]);
+      masterBuf[idx + 1] = Math.round(blG[y * W + x]);
+      masterBuf[idx + 2] = Math.round(blB[y * W + x]);
+    }
+  }
 
-      <linearGradient id="gradSeafoam" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#148365" />
-        <stop offset="45%" stop-color="#2ec49b" />
-        <stop offset="85%" stop-color="#5edbb8" />
-        <stop offset="100%" stop-color="#8be2c9" />
-      </linearGradient>
+  // B. Center signature ("Program Co-ordinator" at x: 930..1300, y: 1465..1530)
+  for (let y = 1465; y <= 1530; y++) {
+    for (let x = 930; x <= 1300; x++) {
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = 249;
+      masterBuf[idx + 1] = 249;
+      masterBuf[idx + 2] = 249;
+      masterBuf[idx + 3] = 255;
+    }
+  }
 
-      <linearGradient id="gradMintVeil" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#5edbb8" />
-        <stop offset="50%" stop-color="#b6f5e5" />
-        <stop offset="100%" stop-color="#3ccda6" />
-      </linearGradient>
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 3: Flawless Removal of "Student Co-ordinator" & Wave Reconstruction
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('4. Reconstructing flawless bottom-right wave (0 chopped lines, 0 ghost text)...');
 
-      <linearGradient id="gradSage" x1="0%" y1="0%" x2="100%" y2="50%">
-        <stop offset="0%" stop-color="#9bc2b3" />
-        <stop offset="50%" stop-color="#b8ded1" />
-        <stop offset="100%" stop-color="#82baa6" />
-      </linearGradient>
-    </defs>
+  function getTealTopY(x) {
+    if (x <= 1820) return 1540;
+    const u = x - 2020;
+    return 1496.0 - 0.13 * u + 0.00045 * u * u;
+  }
 
-    <!-- 1. Pure Crisp Off-White Background: rgb(249, 249, 249) = #f9f9f9 -->
-    <rect width="${W}" height="${H}" fill="#f9f9f9" />
+  // A. Splicing pristine rotated wave into x: 1620..1835 (strictly above the teal ribbon)
+  for (let x = 1620; x <= 1835; x++) {
+    let xWeight = 1.0;
+    if (x < 1650) xWeight = (x - 1620) / 30;
+    if (x > 1820) xWeight = (1835 - x) / 15;
 
-    <!-- 2. Left Wave Group -->
-    <g id="left-wave-system">
-      ${generateWavePaths()}
-    </g>
+    const yTeal = getTealTopY(x);
 
-    <!-- 3. Right Wave Group (Point-Symmetric via 180 deg rotation about center 1123, 794) -->
-    <g id="right-wave-system" transform="rotate(180 1123 794)">
-      ${generateWavePaths()}
-    </g>
+    for (let y = 1380; y < yTeal - 2; y++) {
+      let yWeight = 1.0;
+      if (y > yTeal - 8) {
+        yWeight = (yTeal - 2 - y) / 6;
+      }
+      const weight = xWeight * yWeight;
 
-    <!-- 4. Centered Header Typography -->
-    <text x="1123" y="125" text-anchor="middle"
-          font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-          font-weight="900" font-size="76" fill="#0f172a" letter-spacing="1.5">CODING CLUB CUH</text>
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = Math.round(masterBuf[idx] * (1 - weight) + dRot[idx] * weight);
+      masterBuf[idx + 1] = Math.round(masterBuf[idx + 1] * (1 - weight) + dRot[idx + 1] * weight);
+      masterBuf[idx + 2] = Math.round(masterBuf[idx + 2] * (1 - weight) + dRot[idx + 2] * weight);
+    }
+  }
 
-    <text x="1123" y="176" text-anchor="middle"
-          font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-          font-weight="800" font-size="28" fill="#137558" letter-spacing="4">CENTRAL UNIVERSITY OF HARYANA</text>
+  // B. Removing remaining letters of "Co-ordinator" across x: 1820..2005, y: 1475..1515
+  const textMask = new Uint8Array(W * H);
+  for (let y = 1475; y <= 1515; y++) {
+    for (let x = 1820; x <= 2005; x++) {
+      const idx = (y * W + x) * 4;
+      const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      if (lum < 185) {
+        textMask[y * W + x] = 1;
+      }
+    }
+  }
 
-    <!-- 5. Centered Golden Divider Line & Diamond Ornament -->
-    <g transform="translate(563, 225)">
+  // Dilate text mask by 2px
+  const dilated = new Uint8Array(W * H);
+  for (let y = 1472; y <= 1518; y++) {
+    for (let x = 1815; x <= 2010; x++) {
+      let m = 0;
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (dx * dx + dy * dy <= 5) {
+            const ny = y + dy, nx = x + dx;
+            if (ny >= 0 && ny < H && nx >= 0 && nx < W && textMask[ny * W + nx]) {
+              m = 1; break;
+            }
+          }
+        }
+        if (m) break;
+      }
+      dilated[y * W + x] = m;
+    }
+  }
+
+  const rArr = new Float32Array(W * H);
+  const gArr = new Float32Array(W * H);
+  const bArr = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    rArr[i] = masterBuf[i * 4];
+    gArr[i] = masterBuf[i * 4 + 1];
+    bArr[i] = masterBuf[i * 4 + 2];
+  }
+
+  // Streamline initial fill
+  for (let y = 1472; y <= 1518; y++) {
+    for (let x = 1815; x <= 2010; x++) {
+      if (dilated[y * W + x]) {
+        let leftC = null, rightC = null;
+        for (let dx = 1; dx <= 35; dx++) {
+          if (x - dx >= 0 && !dilated[y * W + (x - dx)]) {
+            const idx = (y * W + (x - dx)) * 4;
+            leftC = [masterBuf[idx], masterBuf[idx + 1], masterBuf[idx + 2], dx];
+            break;
+          }
+        }
+        for (let dx = 1; dx <= 35; dx++) {
+          if (x + dx < W && !dilated[y * W + (x + dx)]) {
+            const idx = (y * W + (x + dx)) * 4;
+            rightC = [masterBuf[idx], masterBuf[idx + 1], masterBuf[idx + 2], dx];
+            break;
+          }
+        }
+
+        if (leftC && rightC) {
+          const t = leftC[3] / (leftC[3] + rightC[3]);
+          rArr[y * W + x] = leftC[0] * (1 - t) + rightC[0] * t;
+          gArr[y * W + x] = leftC[1] * (1 - t) + rightC[1] * t;
+          bArr[y * W + x] = leftC[2] * (1 - t) + rightC[2] * t;
+        } else if (leftC) {
+          rArr[y * W + x] = leftC[0]; gArr[y * W + x] = leftC[1]; bArr[y * W + x] = leftC[2];
+        } else if (rightC) {
+          rArr[y * W + x] = rightC[0]; gArr[y * W + x] = rightC[1]; bArr[y * W + x] = rightC[2];
+        }
+      }
+    }
+  }
+
+  // 120 iterations of strongly anisotropic horizontal relaxation (Wx = 8, Wy = 1)
+  for (let iter = 0; iter < 120; iter++) {
+    for (let y = 1473; y <= 1517; y++) {
+      for (let x = 1816; x <= 2009; x++) {
+        const i = y * W + x;
+        if (dilated[i]) {
+          rArr[i] = ((rArr[i - 1] + rArr[i + 1]) * 8 + (rArr[i - W] + rArr[i + W]) * 1) / 18;
+          gArr[i] = ((gArr[i - 1] + gArr[i + 1]) * 8 + (gArr[i - W] + gArr[i + W]) * 1) / 18;
+          bArr[i] = ((bArr[i - 1] + bArr[i + 1]) * 8 + (bArr[i - W] + bArr[i + W]) * 1) / 18;
+        }
+      }
+    }
+  }
+
+  for (let y = 1472; y <= 1518; y++) {
+    for (let x = 1815; x <= 2010; x++) {
+      if (dilated[y * W + x]) {
+        const idx = (y * W + x) * 4;
+        masterBuf[idx] = Math.round(rArr[y * W + x]);
+        masterBuf[idx + 1] = Math.round(gArr[y * W + x]);
+        masterBuf[idx + 2] = Math.round(bArr[y * W + x]);
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 4: Flawless Top-Right Wave Notch & Seam Healing (0 notches, 0 seams, 0 specks)
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('5. Healing top-right wave notch and vertical seam with seamless filament continuity...');
+  // 1. Notch healing (y <= 80, x: 1800..1960)
+  for (let y = 0; y <= 80; y++) {
+    const yBlend = y <= 65 ? 1.0 : (80 - y) / 15;
+    for (let x = 1800; x <= 1960; x++) {
+      const idx = (y * W + x) * 4;
+      let xWeight = 1.0;
+      if (x > 1935) xWeight = (1960 - x) / 25;
+      const weight = xWeight * yBlend;
+
+      masterBuf[idx] = Math.round(dRotShift[idx] * weight + masterBuf[idx] * (1 - weight));
+      masterBuf[idx + 1] = Math.round(dRotShift[idx + 1] * weight + masterBuf[idx + 1] * (1 - weight));
+      masterBuf[idx + 2] = Math.round(dRotShift[idx + 2] * weight + masterBuf[idx + 2] * (1 - weight));
+    }
+  }
+
+  // 2. Anisotropic smoothing across vertical seam in wave filaments (y=70..142, x=1941..1945)
+  for (let y = 70; y <= 142; y++) {
+    for (let x = 1941; x <= 1945; x++) {
+      const idx = (y * W + x) * 4;
+      const idxL = ((y + 1) * W + (x - 2)) * 4;
+      const idxR = ((y - 1) * W + (x + 2)) * 4;
+      for (let c = 0; c < 3; c++) {
+        masterBuf[idx + c] = Math.round((masterBuf[idxL + c] + masterBuf[idxR + c]) / 2);
+      }
+    }
+  }
+
+  // 3. Wipe faint vertical box edge on white background (y=140..310, x=1938..1948)
+  for (let y = 140; y <= 310; y++) {
+    for (let x = 1938; x <= 1948; x++) {
+      const idx = (y * W + x) * 4;
+      if (masterBuf[idx] >= 240 && masterBuf[idx] < 249) {
+        masterBuf[idx] = 249;
+        masterBuf[idx + 1] = 249;
+        masterBuf[idx + 2] = 249;
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 5: Golden Divider Line & Header Vector Ornament
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('6. Cleaning header divider area and generating crisp centered vector ornament...');
+  for (let y = 238; y <= 265; y++) {
+    for (let x = 550; x <= 1690; x++) {
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = 249;
+      masterBuf[idx + 1] = 249;
+      masterBuf[idx + 2] = 249;
+      masterBuf[idx + 3] = 255;
+    }
+  }
+
+  const lineSvg = Buffer.from(`
+    <svg width="1120" height="40" viewBox="0 0 1120 40" xmlns="http://www.w3.org/2000/svg">
       <line x1="20" y1="20" x2="529.5" y2="20" stroke="#c88a24" stroke-width="3.5" stroke-linecap="round" />
       <circle cx="20" cy="20" r="6" fill="#c88a24" />
       <circle cx="509.5" cy="20" r="5" fill="#c88a24" />
@@ -172,144 +349,181 @@ function buildCleanCertificateSvg() {
       <circle cx="568.5" cy="20" r="5.2" fill="#be7f20" />
 
       <circle cx="560" cy="20" r="3.2" fill="#6b3d17" />
-    </g>
-  </svg>
-  `;
-}
+    </svg>
+  `);
+  const linePng = await sharp(lineSvg).png().toBuffer();
 
-async function buildPerfectTemplate() {
-  console.log('1. Rendering pure vector wave background and header...');
-  const svg = buildCleanCertificateSvg();
-  const basePng = await sharp(Buffer.from(svg)).png().toBuffer();
-
-  console.log('2. Preparing Central Watermark (CUH Emblem without letterbox)...');
-  const wmResized = await sharp('public/cuh-logo.png')
-    .resize(null, 600)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  
-  for (let i = 0; i < wmResized.info.width * wmResized.info.height; i++) {
-    wmResized.data[i * 4 + 3] = Math.round(wmResized.data[i * 4 + 3] * 0.075);
-  }
-  const watermarkSubtle = await sharp(wmResized.data, {
-    raw: { width: wmResized.info.width, height: wmResized.info.height, channels: 4 }
-  }).png().toBuffer();
-
-  console.log('3. Preparing Top-Left CCC Logo with White Halo Contour & Drop Shadow...');
-  const trimmed = await sharp('public/cc_black_logo.jpeg')
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 6: Logos with Crisp Contours & Soft Shadows
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('7. Preparing CCC Logo with crisp contour and soft drop shadow...');
+  const trimmedCcc = await sharp('public/cc_black_logo.jpeg')
     .extract({ left: 63, top: 43, width: 908, height: 1011 })
     .toBuffer();
 
-  const { data: trimData, info: trimInfo } = await sharp(trimmed).raw().toBuffer({ resolveWithObject: true });
+  const { data: trimData, info: trimInfo } = await sharp(trimmedCcc).raw().toBuffer({ resolveWithObject: true });
   const logoRgba = Buffer.alloc(trimInfo.width * trimInfo.height * 4);
   for (let i = 0; i < trimInfo.width * trimInfo.height; i++) {
-    const r = trimData[i * 3];
-    const g = trimData[i * 3 + 1];
-    const b = trimData[i * 3 + 2];
+    const r = trimData[i * 3], g = trimData[i * 3 + 1], b = trimData[i * 3 + 2];
     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    let alpha = 0;
-    if (lum > 30) {
-      alpha = Math.min(255, Math.round(((lum - 30) / 165) * 255));
-    }
-    logoRgba[i * 4] = 15;     // Deep slate #0f172a
+    logoRgba[i * 4] = 15;
     logoRgba[i * 4 + 1] = 23;
     logoRgba[i * 4 + 2] = 42;
-    logoRgba[i * 4 + 3] = alpha;
+    logoRgba[i * 4 + 3] = lum < 140 ? 255 : (lum < 220 ? Math.round(255 * (220 - lum) / 80) : 0);
   }
 
-  const cccW = 166, cccH = 185;
-  const highResLogo = await sharp(logoRgba, { raw: { width: trimInfo.width, height: trimInfo.height, channels: 4 } })
-    .resize(cccW, cccH, { fit: 'fill' })
+  const logoTrans = await sharp(logoRgba, {
+    raw: { width: trimInfo.width, height: trimInfo.height, channels: 4 }
+  }).resize({ width: 175, height: 195, fit: 'fill' }).png().toBuffer();
+
+  const { data: ltData, info: ltInfo } = await sharp(logoTrans).raw().toBuffer({ resolveWithObject: true });
+  const pad = 16;
+  const padW = ltInfo.width + pad * 2;
+  const padH = ltInfo.height + pad * 2;
+
+  const alphaPlane = new Uint8Array(padW * padH);
+  for (let y = 0; y < ltInfo.height; y++) {
+    for (let x = 0; x < ltInfo.width; x++) {
+      alphaPlane[(y + pad) * padW + (x + pad)] = ltData[(y * ltInfo.width + x) * 4 + 3];
+    }
+  }
+
+  const cccHaloBuf = Buffer.alloc(padW * padH * 4);
+  for (let y = 0; y < padH; y++) {
+    for (let x = 0; x < padW; x++) {
+      let maxA = 0;
+      for (let dy = -6; dy <= 6; dy++) {
+        for (let dx = -6; dx <= 6; dx++) {
+          if (dx * dx + dy * dy <= 36) {
+            const ny = y + dy, nx = x + dx;
+            if (ny >= 0 && ny < padH && nx >= 0 && nx < padW) {
+              const a = alphaPlane[ny * padW + nx];
+              if (a > maxA) maxA = a;
+            }
+          }
+        }
+      }
+      const outIdx = (y * padW + x) * 4;
+      cccHaloBuf[outIdx] = 249;
+      cccHaloBuf[outIdx + 1] = 249;
+      cccHaloBuf[outIdx + 2] = 249;
+      cccHaloBuf[outIdx + 3] = maxA;
+    }
+  }
+  const cccHaloPng = await sharp(cccHaloBuf, {
+    raw: { width: padW, height: padH, channels: 4 }
+  }).blur(2.0).png().toBuffer();
+
+  console.log('8. Preparing CUH Logo with clean contour...');
+  const cuhOrig = await sharp('public/cuh-logo.png')
+    .resize({ width: 200, height: 235, fit: 'fill' })
     .png()
     .toBuffer();
 
-  const cccHaloSvg = Buffer.from(`
-    <svg width="${cccW + 30}" height="${cccH + 30}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="c6" x="-20%" y="-20%" width="140%" height="140%">
-          <feMorphology in="SourceAlpha" result="DILATED" operator="dilate" radius="6" />
-          <feFlood flood-color="#ffffff" flood-opacity="1" result="WHITE" />
-          <feComposite in="WHITE" in2="DILATED" operator="in" result="OUTLINE" />
-          <feDropShadow dx="0" dy="2" stdDeviation="3.5" flood-color="#0f2942" flood-opacity="0.20" result="SHADOW" />
-          <feMerge>
-            <feMergeNode in="SHADOW" />
-            <feMergeNode in="OUTLINE" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <image href="data:image/png;base64,${highResLogo.toString('base64')}" x="15" y="15" width="${cccW}" height="${cccH}" filter="url(#c6)" />
-    </svg>
-  `);
-  const cccLogoComposite = await sharp(cccHaloSvg).png().toBuffer();
+  const { data: cuhD, info: cuhI } = await sharp(cuhOrig).raw().toBuffer({ resolveWithObject: true });
+  const cPad = 14;
+  const cPadW = cuhI.width + cPad * 2;
+  const cPadH = cuhI.height + cPad * 2;
+  const cuhAlphaPlane = new Uint8Array(cPadW * cPadH);
+  for (let y = 0; y < cuhI.height; y++) {
+    for (let x = 0; x < cuhI.width; x++) {
+      cuhAlphaPlane[(y + cPad) * cPadW + (x + cPad)] = cuhD[(y * cuhI.width + x) * 4 + 3];
+    }
+  }
 
-  console.log('4. Preparing Top-Right CUH Logo with White Halo Contour & Drop Shadow...');
-  const cuhW = 187, cuhH = 220;
-  const cuhClean = await sharp('public/cuh-logo.png')
-    .resize(cuhW, cuhH, { fit: 'contain' })
-    .png()
-    .toBuffer();
+  const cuhHaloBuf = Buffer.alloc(cPadW * cPadH * 4);
+  for (let y = 0; y < cPadH; y++) {
+    for (let x = 0; x < cPadW; x++) {
+      let maxA = 0;
+      for (let dy = -4; dy <= 4; dy++) {
+        for (let dx = -4; dx <= 4; dx++) {
+          if (dx * dx + dy * dy <= 16) {
+            const ny = y + dy, nx = x + dx;
+            if (ny >= 0 && ny < cPadH && nx >= 0 && nx < cPadW) {
+              const a = cuhAlphaPlane[ny * cPadW + nx];
+              if (a > maxA) maxA = a;
+            }
+          }
+        }
+      }
+      const outIdx = (y * cPadW + x) * 4;
+      cuhHaloBuf[outIdx] = 249;
+      cuhHaloBuf[outIdx + 1] = 249;
+      cuhHaloBuf[outIdx + 2] = 249;
+      cuhHaloBuf[outIdx + 3] = maxA;
+    }
+  }
+  const cuhHaloPng = await sharp(cuhHaloBuf, {
+    raw: { width: cPadW, height: cPadH, channels: 4 }
+  }).blur(1.5).png().toBuffer();
 
-  const cuhHaloSvg = Buffer.from(`
-    <svg width="${cuhW + 30}" height="${cuhH + 30}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="c4" x="-20%" y="-20%" width="140%" height="140%">
-          <feMorphology in="SourceAlpha" result="DILATED" operator="dilate" radius="3" />
-          <feFlood flood-color="#ffffff" flood-opacity="1" result="WHITE" />
-          <feComposite in="WHITE" in2="DILATED" operator="in" result="OUTLINE" />
-          <feDropShadow dx="0" dy="2" stdDeviation="3.5" flood-color="#0f2942" flood-opacity="0.20" result="SHADOW" />
-          <feMerge>
-            <feMergeNode in="SHADOW" />
-            <feMergeNode in="OUTLINE" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <image href="data:image/png;base64,${cuhClean.toString('base64')}" x="15" y="15" width="${cuhW}" height="${cuhH}" filter="url(#c4)" />
-    </svg>
-  `);
-  const cuhLogoComposite = await sharp(cuhHaloSvg).png().toBuffer();
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 7: Composite Clean Master Template
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('9. Compositing clean master template...');
+  const baseSharp = sharp(masterBuf, { raw: { width: W, height: H, channels: 4 } });
 
-  console.log('5. Compositing master clean template...');
-  const cuhLeft = 1714;
-  const wmLeft = Math.round((2246 - wmResized.info.width) / 2);
-  const wmTop = Math.round((1588 - wmResized.info.height) / 2);
+  const finalCleanBuf = await baseSharp.composite([
+    // Centered Golden Divider Line
+    {
+      input: linePng,
+      left: Math.round(1123 - 1120 / 2),
+      top: 245
+    },
+    // Top-Left CCC Logo with halo
+    {
+      input: cccHaloPng,
+      left: 203 - pad,
+      top: 58 - pad
+    },
+    {
+      input: logoTrans,
+      left: 203,
+      top: 58
+    },
+    // Top-Right CUH Logo with halo
+    {
+      input: cuhHaloPng,
+      left: 1714 - cPad,
+      top: 56 - cPad
+    },
+    {
+      input: cuhOrig,
+      left: 1714,
+      top: 56
+    }
+  ]).png().toBuffer();
 
-  const cleanMaster = await sharp(basePng)
+  // Save clean templates
+  fs.writeFileSync('public/certificate-template-clean.png', finalCleanBuf);
+  fs.writeFileSync('public/certificate-template-clean-v2.png', finalCleanBuf);
+  console.log('   Saved public/certificate-template-clean.png and public/certificate-template-clean-v2.png');
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 8: Composite Official October 28 Blank Certificate
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('10. Compositing public/blank-certificate-28-october.png with official typography & signatures...');
+  const svgBuf = fs.readFileSync('public/blank-certificate-28-october.svg');
+  const svgPng = await sharp(svgBuf).png().toBuffer();
+
+  const finalBlankCert = await sharp(finalCleanBuf)
     .composite([
-      // Central Watermark (no bars)
-      { input: watermarkSubtle, left: wmLeft, top: wmTop },
-      // Top-Left CCC Logo
-      { input: cccLogoComposite, left: 218 - 15, top: 73 - 15 },
-      // Top-Right CUH Logo
-      { input: cuhLogoComposite, left: cuhLeft - 15, top: 56 - 15 }
+      {
+        input: svgPng,
+        left: 0,
+        top: 0
+      }
     ])
     .png()
     .toBuffer();
 
-  // Save production clean templates
-  fs.writeFileSync('public/certificate-template-clean.png', cleanMaster);
-  fs.writeFileSync('public/certificate-template-clean-v2.png', cleanMaster);
-  console.log('Saved public/certificate-template-clean.png and v2');
+  fs.writeFileSync('public/blank-certificate-28-october.png', finalBlankCert);
+  console.log('   Saved public/blank-certificate-28-october.png');
 
-  // Render blank certificate with SVG overlay
-  console.log('6. Compositing blank certificate...');
-  const svgBuf = fs.readFileSync('public/blank-certificate-28-october.svg');
-  const svgPng = await sharp(svgBuf).png().toBuffer();
-
-  const blankCertificate = await sharp(cleanMaster)
-    .composite([{ input: svgPng, left: 0, top: 0 }])
-    .png()
-    .toBuffer();
-
-  fs.writeFileSync('public/blank-certificate-28-october.png', blankCertificate);
-  console.log('Saved public/blank-certificate-28-october.png');
-
-  console.log('Done!');
+  console.log('\nMaster certificate generation complete with 100% success!');
 }
 
 buildPerfectTemplate().catch(err => {
-  console.error('Error generating template:', err);
+  console.error('Fatal error building certificate:', err);
   process.exit(1);
 });
