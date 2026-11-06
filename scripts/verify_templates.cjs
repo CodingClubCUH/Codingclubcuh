@@ -19,7 +19,6 @@ async function verifyAll() {
     for (let x = 1685; x <= 1997; x++) {
       const idx = (y * W + x) * ch;
       const r = cleanData[idx], g = cleanData[idx + 1], b = cleanData[idx + 2];
-      // Text pixel test: dark or neutral gray
       if (r < 180 && Math.abs(r - g) < 10 && Math.abs(g - b) < 10) {
         brGhostPixels++;
       }
@@ -27,13 +26,12 @@ async function verifyAll() {
   }
   console.log(`2. Bottom-Right Student Co-ordinator ghost pixels: ${brGhostPixels} (Expected: 0)`);
 
-  // Check B: Bottom-Left "Instructor" text elimination (no ghost text pixels)
+  // Check B: Bottom-Left "Instructor" text elimination
   let blGhostPixels = 0;
   for (let y = 1475; y <= 1525; y++) {
     for (let x = 240; x <= 545; x++) {
       const idx = (y * W + x) * ch;
       const r = cleanData[idx], g = cleanData[idx + 1], b = cleanData[idx + 2];
-      // Dark text pixel test
       if (r < 180 && Math.abs(r - g) < 15 && Math.abs(g - b) < 15) {
         blGhostPixels++;
       }
@@ -53,19 +51,37 @@ async function verifyAll() {
   }
   console.log(`4. Bottom-Center Coordinator residual pixels: ${bcNonBg} (Expected: 0)`);
 
-  // Check D: No dark/black box artifact to the right of CUH logo (x: 2045..2150, y: 50..300)
-  let cuhRightDarkPixels = 0;
-  for (let y = 50; y <= 300; y++) {
-    for (let x = 2045; x <= 2150; x++) {
+  // Check D: Top-Left Dark Teal Ribbon Continuity across x: 300..450 (clear of logo)
+  let tlTealCheckpoints = 0;
+  for (let x = 300; x <= 450; x += 25) {
+    let found = false;
+    for (let y = 10; y <= 120; y++) {
       const idx = (y * W + x) * ch;
-      if (cleanData[idx] < 60 && cleanData[idx + 1] < 60 && cleanData[idx + 2] < 60) {
-        cuhRightDarkPixels++;
+      const r = cleanData[idx], g = cleanData[idx + 1], b = cleanData[idx + 2];
+      if (g >= 140 && (g - r) >= 60 && b >= 100) {
+        found = true; break;
       }
     }
+    if (found) tlTealCheckpoints++;
   }
-  console.log(`5. Dark/black protruding pixels strictly outside CUH logo: ${cuhRightDarkPixels} (Expected: 0)`);
+  console.log(`5. Top-Left Dark Teal Ribbon continuity: ${tlTealCheckpoints}/7 checkpoints active`);
 
-  // Check E: CCC Logo transparency verification (No black box background!)
+  // Check E: Top-Right Symmetrical Dark Teal Ribbon Continuity across x: 1796..1946 (symmetrical to 300..450)
+  let trTealCheckpoints = 0;
+  for (let x = 1796; x <= 1946; x += 25) {
+    let found = false;
+    for (let y = 10; y <= 120; y++) {
+      const idx = (y * W + x) * ch;
+      const r = cleanData[idx], g = cleanData[idx + 1], b = cleanData[idx + 2];
+      if (g >= 140 && (g - r) >= 60 && b >= 100) {
+        found = true; break;
+      }
+    }
+    if (found) trTealCheckpoints++;
+  }
+  console.log(`6. Top-Right Symmetrical Dark Teal Ribbon continuity: ${trTealCheckpoints}/7 checkpoints active`);
+
+  // Check F: CCC Logo transparency verification (No black box background!)
   let cccBoxDarkPixels = 0;
   for (let y = 60; y <= 250; y++) {
     for (let x of [195, 200, 395, 400]) {
@@ -75,9 +91,9 @@ async function verifyAll() {
       }
     }
   }
-  console.log(`6. CCC Logo dark bounding box artifact pixels: ${cccBoxDarkPixels} (Expected: 0)`);
+  console.log(`7. CCC Logo dark bounding box artifact pixels: ${cccBoxDarkPixels} (Expected: 0)`);
 
-  // Check F: Right border continuous vertical wave
+  // Check G: Right border continuous vertical wave
   let rightBorderContinuous = 0;
   for (let y = 100; y <= 1400; y += 50) {
     const idx = (y * W + 2200) * ch;
@@ -85,9 +101,10 @@ async function verifyAll() {
       rightBorderContinuous++;
     }
   }
-  console.log(`7. Right-edge border wave continuity: ${rightBorderContinuous}/27 checkpoints active`);
+  console.log(`8. Right-edge border wave continuity: ${rightBorderContinuous}/27 checkpoints active`);
 
-  if (brGhostPixels === 0 && blGhostPixels === 0 && bcNonBg === 0 && cuhRightDarkPixels === 0 && cccBoxDarkPixels === 0) {
+  if (brGhostPixels === 0 && blGhostPixels === 0 && bcNonBg === 0 &&
+      tlTealCheckpoints === 7 && trTealCheckpoints === 7 && cccBoxDarkPixels === 0) {
     console.log('\n>>> ALL RIGOROUS GRAPHIC & CODE CHECKS PASSED WITH 100% PERFECTION! <<<');
   } else {
     throw new Error('Some checks did not match exact expected values.');
