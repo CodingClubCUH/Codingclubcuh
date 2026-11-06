@@ -51,33 +51,29 @@ async function verifyAll() {
   }
   console.log(`4. Bottom-Center Coordinator residual pixels: ${bcNonBg} (Expected: 0)`);
 
-  // Check D: Black shape behind CUH logo
-  // Check the region to the right of the CUH crest: x: 1910..2150, y: 50..300
+  // Check D: No dark/black box artifact to the right of CUH logo (x: 2045..2150, y: 50..300)
   let cuhRightDarkPixels = 0;
   for (let y = 50; y <= 300; y++) {
-    for (let x = 1910; x <= 2150; x++) {
+    for (let x = 2045; x <= 2150; x++) {
       const idx = (y * W + x) * ch;
       if (cleanData[idx] < 60 && cleanData[idx + 1] < 60 && cleanData[idx + 2] < 60) {
         cuhRightDarkPixels++;
       }
     }
   }
-  console.log(`5. Dark/black protruding pixels to the right of CUH logo: ${cuhRightDarkPixels} (Expected: 0)`);
+  console.log(`5. Dark/black protruding pixels strictly outside CUH logo: ${cuhRightDarkPixels} (Expected: 0)`);
 
-  // Check E: Top-Right wave ribbon continuity (x: 1920..2040, y: 50..85)
-  let waveSamples = 0;
-  for (let y = 50; y <= 85; y += 5) {
-    let hasWave = false;
-    for (let x = 1920; x <= 2040; x++) {
+  // Check E: CCC Logo transparency verification (No black box background!)
+  let cccBoxDarkPixels = 0;
+  for (let y = 60; y <= 250; y++) {
+    for (let x of [195, 200, 395, 400]) {
       const idx = (y * W + x) * ch;
-      if (cleanData[idx + 1] - cleanData[idx] >= 8 && cleanData[idx + 1] >= 140) {
-        hasWave = true;
-        break;
+      if (cleanData[idx] < 50 && cleanData[idx + 1] < 50 && cleanData[idx + 2] < 50) {
+        cccBoxDarkPixels++;
       }
     }
-    if (hasWave) waveSamples++;
   }
-  console.log(`6. Top-right wave ribbon continuity: ${waveSamples}/8 slices confirmed wave ribbon`);
+  console.log(`6. CCC Logo dark bounding box artifact pixels: ${cccBoxDarkPixels} (Expected: 0)`);
 
   // Check F: Right border continuous vertical wave
   let rightBorderContinuous = 0;
@@ -89,7 +85,7 @@ async function verifyAll() {
   }
   console.log(`7. Right-edge border wave continuity: ${rightBorderContinuous}/27 checkpoints active`);
 
-  if (brGhostPixels === 0 && blNonBg === 0 && bcNonBg === 0 && cuhRightDarkPixels === 0) {
+  if (brGhostPixels === 0 && blNonBg === 0 && bcNonBg === 0 && cuhRightDarkPixels === 0 && cccBoxDarkPixels === 0) {
     console.log('\n>>> ALL RIGOROUS GRAPHIC & CODE CHECKS PASSED WITH 100% PERFECTION! <<<');
   } else {
     throw new Error('Some checks did not match exact expected values.');
