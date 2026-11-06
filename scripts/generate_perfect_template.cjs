@@ -166,27 +166,184 @@ async function buildFlawlessMaster() {
   }
 
   // -------------------------------------------------------------------
-  // B. PERFECT SYMMETRICAL MATCH FOR TOP-RIGHT WAVE
+  // B. AUTHENTIC NATURAL DOWNWARD SILK FLOW FOR TOP-RIGHT WAVE
   // -------------------------------------------------------------------
-  console.log('3. Mirroring pristine top-left wave to top-right for perfect symmetrical match...');
-  for (let y = 0; y <= 400; y++) {
-    for (let x = 0; x <= 720; x++) {
-      const srcIdx = (y * W + x) * 4;
-      const dstX = W - 1 - x;
-      const dstIdx = (y * W + dstX) * 4;
+  console.log('3. Synthesizing authentic downward silk wave flow for top-right corner...');
 
-      // Vertical blend into authentic right border wave at y: 280..400
-      let weight = 1.0;
-      if (y > 280) {
-        weight = 0.5 * (1 + Math.cos(Math.PI * (y - 280) / 120));
-      }
-      // Horizontal edge blend near center
-      if (x > 640) {
-        weight *= (720 - x) / 80;
-      }
+  const trTealPoints = [
+    { x: 1650, y: 8.0, th: 4 },
+    { x: 1680, y: 14.0, th: 8 },
+    { x: 1715, y: 26.0, th: 14 },
+    { x: 1755, y: 44.0, th: 18 },
+    { x: 1800, y: 66.0, th: 22 },
+    { x: 1850, y: 90.0, th: 24 },
+    { x: 1905, y: 116.0, th: 26 },
+    { x: 1965, y: 146.0, th: 27 },
+    { x: 2030, y: 182.0, th: 28 },
+    { x: 2100, y: 228.0, th: 26 },
+    { x: 2170, y: 278.0, th: 24 },
+    { x: 2215, y: 315.0, th: 20 },
+    { x: 2246, y: 345.0, th: 16 }
+  ];
 
-      for (let c = 0; c < 3; c++) {
-        masterBuf[dstIdx + c] = Math.round(masterBuf[srcIdx + c] * weight + masterBuf[dstIdx + c] * (1 - weight));
+  const trMintPoints = [
+    { x: 1660, y: 18.0, th: 6 },
+    { x: 1690, y: 28.0, th: 9 },
+    { x: 1725, y: 44.0, th: 12 },
+    { x: 1765, y: 66.0, th: 14 },
+    { x: 1810, y: 90.0, th: 14 },
+    { x: 1860, y: 116.0, th: 14 },
+    { x: 1915, y: 144.0, th: 14 },
+    { x: 1975, y: 175.0, th: 13 },
+    { x: 2040, y: 212.0, th: 13 },
+    { x: 2110, y: 256.0, th: 12 },
+    { x: 2180, y: 306.0, th: 11 },
+    { x: 2246, y: 368.0, th: 9 }
+  ];
+
+  const trUpperMintPoints = [
+    { x: 1690, y: 8.0, th: 6 },
+    { x: 1725, y: 16.0, th: 9 },
+    { x: 1765, y: 28.0, th: 11 },
+    { x: 1810, y: 46.0, th: 13 },
+    { x: 1860, y: 68.0, th: 14 },
+    { x: 1915, y: 92.0, th: 14 },
+    { x: 1975, y: 120.0, th: 14 },
+    { x: 2040, y: 154.0, th: 13 },
+    { x: 2110, y: 196.0, th: 12 },
+    { x: 2180, y: 244.0, th: 11 },
+    { x: 2246, y: 295.0, th: 9 }
+  ];
+
+  // Pure white wipe in header and old CUH logo zone (x: 1500..1940, y: 0..310) to eliminate all residual cuts/notches
+  for (let y = 0; y <= 310; y++) {
+    for (let x = 1500; x <= 1940; x++) {
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = 249;
+      masterBuf[idx + 1] = 249;
+      masterBuf[idx + 2] = 249;
+      masterBuf[idx + 3] = 255;
+    }
+  }
+
+  // Draw the continuous triple ribbons across x: 1650..2246
+  for (let x = 1650; x < W; x++) {
+    const teal = interp(trTealPoints, x);
+    const mint = interp(trMintPoints, x);
+    const upperMint = interp(trUpperMintPoints, x);
+
+    const tealTop = teal.y - teal.th / 2;
+    const tealBot = teal.y + teal.th / 2;
+    const mintTop = mint.y - mint.th / 2;
+    const mintBot = mint.y + mint.th / 2;
+    const upTop = upperMint.y - upperMint.th / 2;
+    const upBot = upperMint.y + upperMint.th / 2;
+
+    // Weight fade: smooth cosine fade-in from 1650 to 1720, smooth blend at x > 2140 into right border wave
+    let w = 1.0;
+    if (x < 1720) w = 0.5 * (1 - Math.cos(Math.PI * (x - 1650) / 70));
+    else if (x > 2140) w = 0.5 * (1 + Math.cos(Math.PI * (x - 2140) / (W - 2140)));
+
+    // 1. Upper Mint Ribbon
+    if (x >= 1690) {
+      for (let y = Math.max(0, Math.round(upTop - 2)); y <= Math.round(upBot + 2); y++) {
+        const idx = (y * W + x) * 4;
+        const distInside = Math.min(y - upTop, upBot - y);
+        let targetR, targetG, targetB;
+        if (distInside >= 1.0) {
+          targetR = 175; targetG = 205; targetB = 192;
+        } else if (distInside >= -1.0) {
+          const alpha = (distInside + 1.0) / 2.0;
+          targetR = Math.round(175 * alpha + 249 * (1 - alpha));
+          targetG = Math.round(205 * alpha + 249 * (1 - alpha));
+          targetB = Math.round(192 * alpha + 249 * (1 - alpha));
+        } else {
+          continue;
+        }
+        masterBuf[idx] = Math.round(targetR * w + masterBuf[idx] * (1 - w));
+        masterBuf[idx + 1] = Math.round(targetG * w + masterBuf[idx + 1] * (1 - w));
+        masterBuf[idx + 2] = Math.round(targetB * w + masterBuf[idx + 2] * (1 - w));
+      }
+    }
+
+    // 2. White gap between Upper Mint and Teal
+    for (let y = Math.max(0, Math.round(upBot + 2)); y < Math.round(tealTop - 2); y++) {
+      if (x < 1950) {
+        const idx = (y * W + x) * 4;
+        masterBuf[idx] = Math.round(249 * w + masterBuf[idx] * (1 - w));
+        masterBuf[idx + 1] = Math.round(249 * w + masterBuf[idx + 1] * (1 - w));
+        masterBuf[idx + 2] = Math.round(249 * w + masterBuf[idx + 2] * (1 - w));
+      }
+    }
+
+    // 3. Teal Ribbon Core
+    for (let y = Math.max(0, Math.round(tealTop - 3)); y <= Math.round(tealBot + 3); y++) {
+      const idx = (y * W + x) * 4;
+      const distInside = Math.min(y - tealTop, tealBot - y);
+      let targetR, targetG, targetB;
+      if (distInside >= 1.5) {
+        targetR = 0; targetG = 169; targetB = 157;
+      } else if (distInside >= -1.0) {
+        const alpha = (distInside + 1.0) / 2.5;
+        targetR = Math.round(0 * alpha + 249 * (1 - alpha));
+        targetG = Math.round(169 * alpha + 249 * (1 - alpha));
+        targetB = Math.round(157 * alpha + 249 * (1 - alpha));
+      } else {
+        targetR = 249; targetG = 249; targetB = 249;
+      }
+      masterBuf[idx] = Math.round(targetR * w + masterBuf[idx] * (1 - w));
+      masterBuf[idx + 1] = Math.round(targetG * w + masterBuf[idx + 1] * (1 - w));
+      masterBuf[idx + 2] = Math.round(targetB * w + masterBuf[idx + 2] * (1 - w));
+    }
+
+    // 4. White gap between Teal and Lower Mint
+    for (let y = Math.round(tealBot + 3); y < Math.round(mintTop - 2); y++) {
+      if (x < 1950) {
+        const idx = (y * W + x) * 4;
+        masterBuf[idx] = Math.round(249 * w + masterBuf[idx] * (1 - w));
+        masterBuf[idx + 1] = Math.round(249 * w + masterBuf[idx + 1] * (1 - w));
+        masterBuf[idx + 2] = Math.round(249 * w + masterBuf[idx + 2] * (1 - w));
+      }
+    }
+
+    // 5. Lower Mint Ribbon
+    for (let y = Math.max(0, Math.round(mintTop - 2)); y <= Math.round(mintBot + 2); y++) {
+      const idx = (y * W + x) * 4;
+      const distInside = Math.min(y - mintTop, mintBot - y);
+      let targetR, targetG, targetB;
+      if (distInside >= 1.0) {
+        targetR = 155; targetG = 194; targetB = 179;
+      } else if (distInside >= -1.0) {
+        const alpha = (distInside + 1.0) / 2.0;
+        targetR = Math.round(155 * alpha + 249 * (1 - alpha));
+        targetG = Math.round(194 * alpha + 249 * (1 - alpha));
+        targetB = Math.round(179 * alpha + 249 * (1 - alpha));
+      } else {
+        targetR = 249; targetG = 249; targetB = 249;
+      }
+      masterBuf[idx] = Math.round(targetR * w + masterBuf[idx] * (1 - w));
+      masterBuf[idx + 1] = Math.round(targetG * w + masterBuf[idx + 1] * (1 - w));
+      masterBuf[idx + 2] = Math.round(targetB * w + masterBuf[idx + 2] * (1 - w));
+    }
+  }
+
+  // Smooth relaxation along ribbon stream tangent (preserving sharp transversal edges)
+  for (let iter = 0; iter < 10; iter++) {
+    for (let y = 10; y <= 360; y++) {
+      for (let x = 1680; x <= 2200; x++) {
+        const teal = interp(trTealPoints, x);
+        const distToTeal = Math.abs(y - teal.y);
+        // Keep core teal solid
+        if (distToTeal <= teal.th / 2 - 2) continue;
+
+        const idx = (y * W + x) * 4;
+        const idxL2 = ((y - 1) * W + (x - 2)) * 4;
+        const idxR2 = ((y + 1) * W + (x + 2)) * 4;
+        if (y > 0 && y < H - 1 && x > 1 && x < W - 2) {
+          for (let c = 0; c < 3; c++) {
+            masterBuf[idx + c] = Math.round(((masterBuf[idxL2 + c] + masterBuf[idxR2 + c]) * 5 + masterBuf[idx + c] * 6) / 16);
+          }
+        }
       }
     }
   }

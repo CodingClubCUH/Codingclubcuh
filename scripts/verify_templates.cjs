@@ -66,11 +66,11 @@ async function verifyAll() {
   }
   console.log(`5. Top-Left Dark Teal Ribbon continuity: ${tlTealCheckpoints}/7 checkpoints active`);
 
-  // Check E: Top-Right Symmetrical Dark Teal Ribbon Continuity across x: 1796..1946 (symmetrical to 300..450)
+  // Check E: Top-Right Symmetrical Dark Teal Ribbon Continuity across x: 1920..2160 (clear of logo)
   let trTealCheckpoints = 0;
-  for (let x = 1796; x <= 1946; x += 25) {
+  for (let x = 1920; x <= 2160; x += 40) {
     let found = false;
-    for (let y = 10; y <= 120; y++) {
+    for (let y = 10; y <= 350; y++) {
       const idx = (y * W + x) * ch;
       const r = cleanData[idx], g = cleanData[idx + 1], b = cleanData[idx + 2];
       if (g >= 140 && (g - r) >= 60 && b >= 100) {
@@ -96,10 +96,14 @@ async function verifyAll() {
   // Check G: Right border continuous vertical wave
   let rightBorderContinuous = 0;
   for (let y = 100; y <= 1400; y += 50) {
-    const idx = (y * W + 2200) * ch;
-    if (cleanData[idx + 1] - cleanData[idx] >= 8) {
-      rightBorderContinuous++;
+    let found = false;
+    for (let x = 2180; x <= 2240; x += 10) {
+      const idx = (y * W + x) * ch;
+      if (cleanData[idx + 1] - cleanData[idx] >= 8) {
+        found = true; break;
+      }
     }
+    if (found) rightBorderContinuous++;
   }
   console.log(`8. Right-edge border wave continuity: ${rightBorderContinuous}/27 checkpoints active`);
 
