@@ -4,23 +4,139 @@ const fs = require('fs');
 const path = require('path');
 
 async function buildPerfectTemplate() {
-  console.log('1. Loading base templates from git history...');
+  console.log('1. Loading pristine base template from git commit 4a438fd...');
   
-  // Base 4267a98 (clean dynamic template with correct dimensions 2246 x 1588)
-  const buf42 = execSync('git show 4267a98:public/certificate-template-clean-v2.png', { maxBuffer: 30 * 1024 * 1024 });
-  const { data: data42, info } = await sharp(buf42).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const W = info.width, H = info.height;
-  const masterBuf = Buffer.from(data42);
-
-  // Base 4a438fd (for pristine bottom-right wave with full original colors)
+  // Base 4a438fd: original authentic HD template (2246 x 1588) with continuous right-margin wave,
+  // clean watermark, and uncorrupted CUH background.
   const buf4a = execSync('git show 4a438fd:public/certificate-template-clean.png', { maxBuffer: 30 * 1024 * 1024 });
-  const { data: data4a } = await sharp(buf4a).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { data: data4a, info } = await sharp(buf4a).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height;
+  const masterBuf = Buffer.from(data4a);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // STEP 1: Golden divider line cleanup & crisp vector replacement
+  // STEP 1: Eliminate Baked Signature Titles ("Instructor", "Coordinator", "Student Co-ordinator")
   // ─────────────────────────────────────────────────────────────────────────────
-  console.log('2. Cleaning header divider area and generating crisp vector ornament...');
-  for (let y = 240; y <= 305; y++) {
+  console.log('2. Eliminating baked signature titles...');
+
+  // A. Left signature ("Instructor" at x: 250..531, y: 1483..1515) -> pure off-white (249, 249, 249)
+  for (let y = 1465; y <= 1530; y++) {
+    for (let x = 235; x <= 560; x++) {
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = 249;
+      masterBuf[idx + 1] = 249;
+      masterBuf[idx + 2] = 249;
+      masterBuf[idx + 3] = 255;
+    }
+  }
+
+  // B. Center signature ("Coordinator" at x: 948..1272, y: 1483..1514) -> pure off-white (249, 249, 249)
+  for (let y = 1465; y <= 1530; y++) {
+    for (let x = 930; x <= 1300; x++) {
+      const idx = (y * W + x) * 4;
+      masterBuf[idx] = 249;
+      masterBuf[idx + 1] = 249;
+      masterBuf[idx + 2] = 249;
+      masterBuf[idx + 3] = 255;
+    }
+  }
+
+  // C. Right signature ("Student Co-ordinator" at x: 1685..1997, y: 1483..1507)
+  // Reconstruct seamless teal wave gradient with 2D Laplace PDE diffusion over dilated mask.
+  console.log('   Inpainting Student Co-ordinator with 2D Laplace diffusion (eliminating all ghost text)...');
+  const brX0 = 1620, brY0 = 1450, brW = 440, brH = 85;
+  const brMask = new Uint8Array(brW * brH);
+  for (let y = 0; y < brH; y++) {
+    for (let x = 0; x < brW; x++) {
+      const idx = ((brY0 + y) * W + (brX0 + x)) * 4;
+      const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+      const isWave = (g - r >= 12) && (b - r >= 4) && (g >= 90);
+      const isBg = (r >= 246 && g >= 246 && b >= 246);
+      if (!isWave && !isBg) {
+        brMask[y * brW + x] = 1;
+      }
+    }
+  }
+
+  // Dilate mask with radius 3 (euclidean circle) to envelope 100% of anti-aliasing text fringes
+  const brDilated = new Uint8Array(brW * brH);
+  for (let y = 0; y < brH; y++) {
+    for (let x = 0; x < brW; x++) {
+      let m = 0;
+      for (let dy = -3; dy <= 3; dy++) {
+        for (let dx = -3; dx <= 3; dx++) {
+          if (dx * dx + dy * dy <= 9) {
+            const ny = y + dy, nx = x + dx;
+            if (ny >= 0 && ny < brH && nx >= 0 && nx < brW && brMask[ny * brW + nx]) {
+              m = 1;
+              break;
+            }
+          }
+        }
+        if (m) break;
+      }
+      brDilated[y * brW + x] = m;
+    }
+  }
+
+  const rArr = new Float32Array(brW * brH);
+  const gArr = new Float32Array(brW * brH);
+  const bArr = new Float32Array(brW * brH);
+  for (let y = 0; y < brH; y++) {
+    for (let x = 0; x < brW; x++) {
+      const idx = ((brY0 + y) * W + (brX0 + x)) * 4;
+      rArr[y * brW + x] = masterBuf[idx];
+      gArr[y * brW + x] = masterBuf[idx + 1];
+      bArr[y * brW + x] = masterBuf[idx + 2];
+    }
+  }
+
+  // Directional initial interpolation along gradient
+  for (let x = 0; x < brW; x++) {
+    for (let y = 0; y < brH; y++) {
+      if (brDilated[y * brW + x]) {
+        let topY = y - 1, botY = y + 1;
+        while (topY >= 0 && brDilated[topY * brW + x]) topY--;
+        while (botY < brH && brDilated[botY * brW + x]) botY++;
+        if (topY < 0) topY = botY;
+        if (botY >= brH) botY = topY;
+        const d1 = y - topY, d2 = botY - y;
+        const total = d1 + d2 || 1;
+        rArr[y * brW + x] = (rArr[topY * brW + x] * d2 + rArr[botY * brW + x] * d1) / total;
+        gArr[y * brW + x] = (gArr[topY * brW + x] * d2 + gArr[botY * brW + x] * d1) / total;
+        bArr[y * brW + x] = (bArr[topY * brW + x] * d2 + bArr[botY * brW + x] * d1) / total;
+      }
+    }
+  }
+
+  // 200 iterations of 2D Laplace diffusion (Dirichlet harmonic boundary solver)
+  for (let iter = 0; iter < 200; iter++) {
+    for (let y = 1; y < brH - 1; y++) {
+      for (let x = 1; x < brW - 1; x++) {
+        const i = y * brW + x;
+        if (brDilated[i]) {
+          rArr[i] = (rArr[i - 1] + rArr[i + 1] + rArr[i - brW] + rArr[i + brW]) * 0.25;
+          gArr[i] = (gArr[i - 1] + gArr[i + 1] + gArr[i - brW] + gArr[i + brW]) * 0.25;
+          bArr[i] = (bArr[i - 1] + bArr[i + 1] + bArr[i - brW] + bArr[i + brW]) * 0.25;
+        }
+      }
+    }
+  }
+
+  for (let y = 0; y < brH; y++) {
+    for (let x = 0; x < brW; x++) {
+      const idx = ((brY0 + y) * W + (brX0 + x)) * 4;
+      masterBuf[idx] = Math.round(rArr[y * brW + x]);
+      masterBuf[idx + 1] = Math.round(gArr[y * brW + x]);
+      masterBuf[idx + 2] = Math.round(bArr[y * brW + x]);
+      masterBuf[idx + 3] = 255;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 2: Golden Divider Line & Header Vector Ornament
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('3. Cleaning header divider area and generating crisp centered vector ornament...');
+  for (let y = 238; y <= 265; y++) {
     for (let x = 550; x <= 1690; x++) {
       const idx = (y * W + x) * 4;
       masterBuf[idx] = 249;
@@ -67,93 +183,35 @@ async function buildPerfectTemplate() {
   const linePng = await sharp(lineSvg).png().toBuffer();
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // STEP 2: Perfect Continuous Top-Right Wave (Eliminating Notch / Cuts)
+  // STEP 3: Natural Continuous Wave Healing (Eliminating Notch, Preserving Right Wave)
   // ─────────────────────────────────────────────────────────────────────────────
-  console.log('3. Synthesizing perfectly continuous top-right wave from clean top-left...');
-  // Mirror top-left wave (x: 0..650) to top-right (x: 1596..2245)
-  for (let y = 0; y < 450; y++) {
-    for (let x = 1596; x < W; x++) {
+  console.log('4. Seamlessly healing top-right wave notch without mirroring any logos...');
+  // The right margin wave from y: 0..1588 along x: 2040..2246 is 100% PRESERVED.
+  // We ONLY bridge the wave across the notch in y: 50..85, x: 1920..2040.
+  // We strictly require sr > 70 to guarantee NO dark logo pixels are ever copied!
+  for (let y = 50; y <= 85; y++) {
+    for (let x = 1920; x <= 2040; x++) {
       const srcX = W - 1 - x;
       const srcIdx = (y * W + srcX) * 4;
       const dstIdx = (y * W + x) * 4;
+      const sr = data4a[srcIdx], sg = data4a[srcIdx + 1], sb = data4a[srcIdx + 2];
+      const dr = masterBuf[dstIdx], dg = masterBuf[dstIdx + 1], db = masterBuf[dstIdx + 2];
       
-      let blend = 1.0;
-      if (x < 1646) {
-        blend = (x - 1596) / 50;
+      // If destination has the notch gap and source has the matching wave ribbon
+      if (dr > 238 && dg > 238 && db > 238 && (sg - sr >= 10) && sr > 70) {
+        masterBuf[dstIdx] = sr;
+        masterBuf[dstIdx + 1] = sg;
+        masterBuf[dstIdx + 2] = sb;
       }
-      if (y > 400) {
-        blend = Math.min(blend, (450 - y) / 50);
-      }
-      
-      masterBuf[dstIdx] = Math.round(masterBuf[dstIdx] * (1 - blend) + data42[srcIdx] * blend);
-      masterBuf[dstIdx + 1] = Math.round(masterBuf[dstIdx + 1] * (1 - blend) + data42[srcIdx + 1] * blend);
-      masterBuf[dstIdx + 2] = Math.round(masterBuf[dstIdx + 2] * (1 - blend) + data42[srcIdx + 2] * blend);
-      masterBuf[dstIdx + 3] = 255;
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // STEP 3: Perfect Continuous Bottom-Right Wave (Eliminating Washed-Out Box)
-  // ─────────────────────────────────────────────────────────────────────────────
-  console.log('4. Restoring seamless bottom-right wave from pristine original...');
-  // In 4a438fd, the bottom-right wave is intact and rich in color.
-  // We inpaint the thin text letters in x: 1600..2050, y: 1440..1520 so no rectangular patch exists.
-  const isDarkText = (x, y) => {
-    if (x < 0 || x >= W || y < 0 || y >= H) return false;
-    const idx = (y * W + x) * 4;
-    const r = data4a[idx], g = data4a[idx+1], b = data4a[idx+2];
-    return (r < 125 && g < 125 && b < 125 && Math.abs(r - g) < 20);
-  };
-
-  const brCleanBuf = Buffer.from(data4a);
-  for (let iter = 0; iter < 5; iter++) {
-    for (let y = 1440; y <= 1520; y++) {
-      for (let x = 1600; x <= 2050; x++) {
-        if (isDarkText(x, y)) {
-          let topY = y - 1, botY = y + 1;
-          while (topY > 1430 && isDarkText(x, topY)) topY--;
-          while (botY < 1530 && isDarkText(x, botY)) botY++;
-          
-          const topIdx = (topY * W + x) * 4;
-          const botIdx = (botY * W + x) * 4;
-          const dTop = y - topY;
-          const dBot = botY - y;
-          const totalD = dTop + dBot;
-          
-          const idx = (y * W + x) * 4;
-          brCleanBuf[idx] = Math.round((brCleanBuf[topIdx] * dBot + brCleanBuf[botIdx] * dTop) / totalD);
-          brCleanBuf[idx+1] = Math.round((brCleanBuf[topIdx+1] * dBot + brCleanBuf[botIdx+1] * dTop) / totalD);
-          brCleanBuf[idx+2] = Math.round((brCleanBuf[topIdx+2] * dBot + brCleanBuf[botIdx+2] * dTop) / totalD);
-          brCleanBuf[idx+3] = 255;
-        }
-      }
-    }
-  }
-
-  // Copy pristine BR wave into masterBuf for x: 1546..2246, y: 1150..1588 with smooth edge blending
-  for (let y = 1150; y < H; y++) {
-    for (let x = 1546; x < W; x++) {
-      const idx = (y * W + x) * 4;
-      let blend = 1.0;
-      if (x < 1620) {
-        blend = (x - 1546) / (1620 - 1546);
-      }
-      if (y < 1200) {
-        blend = Math.min(blend, (y - 1150) / 50);
-      }
-      masterBuf[idx] = Math.round(masterBuf[idx] * (1 - blend) + brCleanBuf[idx] * blend);
-      masterBuf[idx + 1] = Math.round(masterBuf[idx + 1] * (1 - blend) + brCleanBuf[idx + 1] * blend);
-      masterBuf[idx + 2] = Math.round(masterBuf[idx + 2] * (1 - blend) + brCleanBuf[idx + 2] * blend);
-      masterBuf[idx + 3] = 255;
     }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // STEP 4: Logos with Crisp Contours & Soft Shadows
   // ─────────────────────────────────────────────────────────────────────────────
-  console.log('5. Rendering crisp logos...');
+  console.log('5. Rendering crisp logos with clean contours...');
   
-  // CCC Logo (Top Left)
+  // A. CCC Logo (Top Left at x: 218, y: 73)
   const trimmed = await sharp('public/cc_black_logo.jpeg')
     .extract({ left: 63, top: 43, width: 908, height: 1011 })
     .toBuffer();
@@ -202,7 +260,8 @@ async function buildPerfectTemplate() {
   `);
   const cccWithContour = await sharp(cccHaloSvg).png().toBuffer();
 
-  // HD CUH Logo (Top Right)
+  // B. HD CUH Logo (Top Right at exact original position left: 1714, top: 56)
+  // Perfectly overlays the original crest with zero dark/black artifacts behind it
   const cuhW = 187;
   const cuhH = 220;
   const cuhResized = await sharp('public/cuh-logo.png')
@@ -214,7 +273,7 @@ async function buildPerfectTemplate() {
     <svg width="${cuhW + 30}" height="${cuhH + 30}" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <filter id="cuh-contour" x="-20%" y="-20%" width="140%" height="140%">
-          <feMorphology in="SourceAlpha" result="DILATED" operator="dilate" radius="3.5" />
+          <feMorphology in="SourceAlpha" result="DILATED" operator="dilate" radius="3" />
           <feFlood flood-color="#ffffff" flood-opacity="1" result="WHITE" />
           <feComposite in="WHITE" in2="DILATED" operator="in" result="OUTLINE" />
           <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f2942" flood-opacity="0.16" result="SHADOW" />
@@ -230,35 +289,28 @@ async function buildPerfectTemplate() {
   `);
   const cuhWithContour = await sharp(cuhHaloSvg).png().toBuffer();
 
-  // Symmetrical coordinates: CCC left = 218, top = 73
-  // CUH symmetric left = 2246 - 218 - 187 = 1841, top = 73
-  console.log('6. Compositing master background...');
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 5: Composite Clean Master Templates
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('6. Compositing master background templates...');
   const cleanMaster = await sharp(masterBuf, { raw: { width: W, height: H, channels: 4 } })
     .composite([
       { input: linePng, left: 563, top: 245 },
       { input: cccWithContour, left: 218 - 15, top: 73 - 15 },
-      { input: cuhWithContour, left: 1841 - 15, top: 73 - 15 }
+      { input: cuhWithContour, left: 1714 - 15, top: 56 - 15 }
     ])
     .png()
     .toBuffer();
 
-  // Save clean templates
   fs.writeFileSync('public/certificate-template-clean.png', cleanMaster);
   fs.writeFileSync('public/certificate-template-clean-v2.png', cleanMaster);
-  console.log('Successfully written clean master templates!');
+  console.log('   Saved public/certificate-template-clean.png');
+  console.log('   Saved public/certificate-template-clean-v2.png');
 
-  // Generate previews for verification
-  // 1. Top-Right CUH Wave preview (x: 1600..2246, y: 0..400)
-  await sharp(cleanMaster)
-    .extract({ left: 1600, top: 0, width: 646, height: 400 })
-    .toFile('public/preview-tr-perfect-wave.png');
-
-  // 2. Bottom-Right Nitin Goyal Wave preview (x: 1546..2246, y: 1350..1588)
-  await sharp(cleanMaster)
-    .extract({ left: 1546, top: 1350, width: 700, height: 238 })
-    .toFile('public/preview-br-perfect-wave.png');
-
-  // 3. Full Blank Certificate 28 October (master + SVG text overlay)
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 6: Render Static 28-October Certificate
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('7. Rendering public/blank-certificate-28-october.png...');
   const svgBuffer = fs.readFileSync('public/blank-certificate-28-october.svg');
   const blankWithText = await sharp(cleanMaster)
     .composite([
@@ -267,7 +319,9 @@ async function buildPerfectTemplate() {
     .png()
     .toBuffer();
   fs.writeFileSync('public/blank-certificate-28-october.png', blankWithText);
-  console.log('Successfully written public/blank-certificate-28-october.png!');
+  console.log('   Saved public/blank-certificate-28-october.png');
+
+  console.log('Build completed successfully!');
 }
 
 buildPerfectTemplate().catch(console.error);
