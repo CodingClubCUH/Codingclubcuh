@@ -232,7 +232,7 @@ export interface Course {
 export interface Media {
   id: number;
   /**
-   * Destination folder in Cloudinary (under codingclub/)
+   * Destination folder in Cloudinary (e.g. certificate or codingclub/...)
    */
   folder?:
     | (
@@ -425,12 +425,21 @@ export interface User {
 export interface Certificate {
   id: number;
   isIssued?: boolean | null;
+  /**
+   * Digitally generated certificate or uploaded physical hard-copy.
+   */
   certificateType?: ('digital' | 'hard_copy') | null;
   /**
-   * Leave empty to auto-generate (e.g. CCCUH-INT-2026-XXXX)
+   * Certificate Number / ID (e.g. CCCUH-INT-2026-XXXX or custom hard-copy number)
    */
   certificateId: string;
+  /**
+   * Uploaded original scanned copy (JPG, PNG, WEBP, or PDF).
+   */
   hardCopyFile?: (number | null) | Media;
+  /**
+   * Direct link to the uploaded certificate document.
+   */
   hardCopyUrl?: string | null;
   /**
    * Link this certificate to the student's login account so they can see it in their dashboard.
@@ -441,12 +450,12 @@ export interface Certificate {
    */
   courseRef?: (number | null) | Course;
   studentName: string;
-  department: string;
-  course: string;
-  semester: string;
+  department?: string | null;
+  course?: string | null;
+  semester?: string | null;
   internship: string;
-  startDate: string;
-  endDate: string;
+  startDate?: string | null;
+  endDate?: string | null;
   issueDate?: string | null;
   signatureInstructor?: (number | null) | Media;
   signatureCoordinator?: (number | null) | Media;

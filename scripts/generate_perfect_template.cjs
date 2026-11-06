@@ -11,72 +11,137 @@ async function buildFlawlessMaster() {
   const masterBuf = Buffer.from(data4a);
 
   // -------------------------------------------------------------------
-  // A. HEAL TOP-LEFT CCC LOGO ZONE (Restoring authentic triple silk ribbon)
+  // A. HEAL TOP-LEFT CCC LOGO ZONE (100% Crisp Silk Wave, Zero Blur)
   // -------------------------------------------------------------------
-  console.log('2. Healing top-left CCC logo zone (zero notches, continuous silk ribbons)...');
+  console.log('2. Healing top-left CCC logo zone (crisp HD silk filaments, zero blur)...');
 
-  // Exact trajectory points measured from pristine authentic ribbons:
-  const tealPoints = [
-    { x: 100, y: 77.0, th: 14 },
-    { x: 125, y: 83.0, th: 16 },
-    { x: 150, y: 86.5, th: 18 },
-    { x: 175, y: 88.0, th: 19 },
-    { x: 200, y: 88.5, th: 20 },
-    { x: 225, y: 85.0, th: 21 },
-    { x: 250, y: 82.0, th: 22 },
-    { x: 275, y: 76.0, th: 23 },
-    { x: 300, y: 69.5, th: 24 },
-    { x: 325, y: 64.0, th: 26 },
-    { x: 350, y: 56.5, th: 28 },
-    { x: 375, y: 48.0, th: 30 },
-    { x: 400, y: 39.5, th: 31 },
-    { x: 425, y: 30.5, th: 32 },
-    { x: 450, y: 23.5, th: 28 },
-    { x: 475, y: 19.0, th: 20 },
-    { x: 500, y: 14.5, th: 12 },
-    { x: 525, y: 10.0, th: 6 }
-  ];
-
-  const mintPoints = [
-    { x: 100, y: 92.0, th: 12 },
-    { x: 125, y: 101.0, th: 12 },
-    { x: 150, y: 106.0, th: 12 },
-    { x: 175, y: 111.0, th: 13 },
-    { x: 200, y: 116.0, th: 13 },
-    { x: 225, y: 119.0, th: 14 },
-    { x: 250, y: 121.0, th: 14 },
-    { x: 275, y: 122.0, th: 14 },
-    { x: 300, y: 120.0, th: 14 },
-    { x: 325, y: 117.5, th: 14 },
-    { x: 350, y: 114.5, th: 14 },
-    { x: 375, y: 111.0, th: 14 },
-    { x: 400, y: 107.0, th: 13 },
-    { x: 425, y: 101.0, th: 13 },
-    { x: 450, y: 94.0, th: 12 },
-    { x: 475, y: 85.0, th: 11 },
-    { x: 500, y: 76.0, th: 10 }
-  ];
-
-  function interp(pts, x) {
-    if (x <= pts[0].x) return { y: pts[0].y, th: pts[0].th };
-    if (x >= pts[pts.length - 1].x) return { y: pts[pts.length - 1].y, th: pts[pts.length - 1].th };
-    for (let i = 0; i < pts.length - 1; i++) {
-      if (x >= pts[i].x && x <= pts[i + 1].x) {
-        const t = (x - pts[i].x) / (pts[i + 1].x - pts[i].x);
-        return {
-          y: pts[i].y * (1 - t) + pts[i + 1].y * t,
-          th: pts[i].th * (1 - t) + pts[i + 1].th * t
-        };
+  // Identify old CCC text pixels
+  const tlTextMask = new Uint8Array(W * H);
+  for (let y = 50; y <= 250; y++) {
+    for (let x = 185; x <= 405; x++) {
+      const idx = (y * W + x) * 4;
+      const r = data4a[idx], g = data4a[idx + 1], b = data4a[idx + 2];
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      if (lum < 115 || (lum < 165 && (r < 75 && g < 80 && b < 85))) {
+        tlTextMask[y * W + x] = 1;
       }
     }
-    return { y: 0, th: 0 };
   }
 
-  // Pure white wipe below mint ribbon in CCC area (y >= mintBot + 2, x: 190..420)
-  for (let x = 190; x <= 420; x++) {
-    const mint = interp(mintPoints, x);
-    const cutoffY = Math.round(mint.y + mint.th / 2 + 2);
-    for (let y = cutoffY; y <= 285; y++) {
+  // Dilate text mask by 2px
+  const dilatedTL = new Uint8Array(W * H);
+  for (let y = 49; y <= 251; y++) {
+    for (let x = 184; x <= 406; x++) {
+      let m = 0;
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (dx * dx + dy * dy <= 5) {
+            const ny = y + dy, nx = x + dx;
+            if (ny >= 0 && ny < H && nx >= 0 && nx < W && tlTextMask[ny * W + nx]) {
+              m = 1; break;
+            }
+          }
+        }
+        if (m) break;
+      }
+      dilatedTL[y * W + x] = m;
+    }
+  }
+
+  // Pure white background for y >= 135 (below wave)
+  for (let y = 135; y <= 255; y++) {
+    for (let x = 180; x <= 410; x++) {
+      if (dilatedTL[y * W + x]) {
+        const idx = (y * W + x) * 4;
+        masterBuf[idx] = 249;
+        masterBuf[idx + 1] = 249;
+        masterBuf[idx + 2] = 249;
+        masterBuf[idx + 3] = 255;
+        dilatedTL[y * W + x] = 0;
+      }
+    }
+  }
+
+  // Clean old white artifact near x: 540..580, y: 85..105 in 4a438fd
+  for (let y = 85; y <= 105; y++) {
+    for (let x = 540; x <= 580; x++) {
+      const idx = (y * W + x) * 4;
+      const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+      if (r > 240 && g > 240 && b > 240) {
+        masterBuf[idx] = 249;
+        masterBuf[idx + 1] = 249;
+        masterBuf[idx + 2] = 249;
+      }
+    }
+  }
+
+  // Inpaint inside wave along tangent (slope ≈ -0.22)
+  const waveSlope = -0.22;
+  for (let y = 49; y <= 135; y++) {
+    for (let x = 184; x <= 406; x++) {
+      if (dilatedTL[y * W + x]) {
+        let c1 = null, c2 = null;
+        for (let s = 1; s <= 35; s++) {
+          const x1 = Math.round(x + s);
+          const y1 = Math.round(y + s * waveSlope);
+          if (x1 < W && y1 < H && !dilatedTL[y1 * W + x1] && !tlTextMask[y1 * W + x1]) {
+            const idx = (y1 * W + x1) * 4;
+            c1 = [data4a[idx], data4a[idx + 1], data4a[idx + 2], s];
+            break;
+          }
+        }
+        for (let s = 1; s <= 35; s++) {
+          const x2 = Math.round(x - s);
+          const y2 = Math.round(y - s * waveSlope);
+          if (x2 >= 0 && y2 >= 0 && !dilatedTL[y2 * W + x2] && !tlTextMask[y2 * W + x2]) {
+            const idx = (y2 * W + x2) * 4;
+            c2 = [data4a[idx], data4a[idx + 1], data4a[idx + 2], s];
+            break;
+          }
+        }
+        const idx = (y * W + x) * 4;
+        if (c1 && c2) {
+          const t = c1[3] / (c1[3] + c2[3]);
+          masterBuf[idx] = Math.round(c1[0] * (1 - t) + c2[0] * t);
+          masterBuf[idx + 1] = Math.round(c1[1] * (1 - t) + c2[1] * t);
+          masterBuf[idx + 2] = Math.round(c1[2] * (1 - t) + c2[2] * t);
+        } else if (c1) {
+          masterBuf[idx] = c1[0]; masterBuf[idx + 1] = c1[1]; masterBuf[idx + 2] = c1[2];
+        } else if (c2) {
+          masterBuf[idx] = c2[0]; masterBuf[idx + 1] = c2[1]; masterBuf[idx + 2] = c2[2];
+        }
+      }
+    }
+  }
+
+  // Smooth ONLY the exact inpainted text pixels along the tangent (2 subtle passes)
+  for (let iter = 0; iter < 2; iter++) {
+    for (let y = 50; y <= 135; y++) {
+      for (let x = 185; x <= 405; x++) {
+        if (dilatedTL[y * W + x]) {
+          const idx = (y * W + x) * 4;
+          const idxL = ((y + 1) * W + (x - 4)) * 4;
+          const idxR = ((y - 1) * W + (x + 4)) * 4;
+          if (x >= 4 && x < W - 4 && y >= 1 && y < H - 1) {
+            for (let c = 0; c < 3; c++) {
+              masterBuf[idx + c] = Math.round((masterBuf[idxL + c] * 5 + masterBuf[idxR + c] * 5 + masterBuf[idx + c] * 6) / 16);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // B. HEAL TOP-RIGHT AUTHENTIC SILK WAVE (Zero Intersecting Stripes)
+  // -------------------------------------------------------------------
+  console.log('3. Healing top-right authentic silk wave (continuous filaments, zero intersections)...');
+
+  const cuhCenterX = 1807, cuhCenterY = 166, cuhRadius = 96;
+
+  // Clear white background between header and CUH logo (x: 1660..1714, y: 0..300)
+  for (let y = 0; y <= 300; y++) {
+    for (let x = 1660; x <= 1714; x++) {
       const idx = (y * W + x) * 4;
       masterBuf[idx] = 249;
       masterBuf[idx + 1] = 249;
@@ -85,263 +150,105 @@ async function buildFlawlessMaster() {
     }
   }
 
-  // Smooth ribbon restoration and blend across x: 190..420
-  for (let x = 190; x <= 420; x++) {
-    const teal = interp(tealPoints, x);
-    const mint = interp(mintPoints, x);
-
-    const tealTop = teal.y - teal.th / 2;
-    const tealBot = teal.y + teal.th / 2;
-    const mintTop = mint.y - mint.th / 2;
-    const mintBot = mint.y + mint.th / 2;
-
-    // Weight fades in from 190 to 220, fades out from 380 to 420
-    let w = 1.0;
-    if (x < 220) w = 0.5 * (1 - Math.cos(Math.PI * (x - 190) / 30));
-    else if (x > 380) w = 0.5 * (1 + Math.cos(Math.PI * (x - 380) / 40));
-
-    // 1. Teal Ribbon with antialiased edges
-    for (let y = Math.round(tealTop - 3); y <= Math.round(tealBot + 3); y++) {
-      const idx = (y * W + x) * 4;
-      const distInside = Math.min(y - tealTop, tealBot - y);
-      let targetR, targetG, targetB;
-      if (distInside >= 1.5) {
-        targetR = 0; targetG = 169; targetB = 157;
-      } else if (distInside >= -1.0) {
-        const alpha = (distInside + 1.0) / 2.5;
-        targetR = Math.round(0 * alpha + 249 * (1 - alpha));
-        targetG = Math.round(169 * alpha + 249 * (1 - alpha));
-        targetB = Math.round(157 * alpha + 249 * (1 - alpha));
-      } else {
-        targetR = 249; targetG = 249; targetB = 249;
+  // Clear area inside the circular crest to 249 (the crisp new logo will sit on top)
+  for (let y = 50; y <= 280; y++) {
+    for (let x = 1710; x <= 1905; x++) {
+      const dx = x - cuhCenterX, dy = y - cuhCenterY;
+      if (dx * dx + dy * dy <= cuhRadius * cuhRadius || y > 180) {
+        const idx = (y * W + x) * 4;
+        masterBuf[idx] = 249;
+        masterBuf[idx + 1] = 249;
+        masterBuf[idx + 2] = 249;
+        masterBuf[idx + 3] = 255;
       }
-      masterBuf[idx] = Math.round(targetR * w + masterBuf[idx] * (1 - w));
-      masterBuf[idx + 1] = Math.round(targetG * w + masterBuf[idx + 1] * (1 - w));
-      masterBuf[idx + 2] = Math.round(targetB * w + masterBuf[idx + 2] * (1 - w));
-    }
-
-    // 2. White gap between Teal and Lower Mint Ribbon
-    for (let y = Math.round(tealBot + 3); y < Math.round(mintTop - 2); y++) {
-      const idx = (y * W + x) * 4;
-      masterBuf[idx] = Math.round(249 * w + masterBuf[idx] * (1 - w));
-      masterBuf[idx + 1] = Math.round(249 * w + masterBuf[idx + 1] * (1 - w));
-      masterBuf[idx + 2] = Math.round(249 * w + masterBuf[idx + 2] * (1 - w));
-    }
-
-    // 3. Lower Mint Ribbon with antialiased edges
-    for (let y = Math.round(mintTop - 2); y <= Math.round(mintBot + 2); y++) {
-      const idx = (y * W + x) * 4;
-      const distInside = Math.min(y - mintTop, mintBot - y);
-      let targetR, targetG, targetB;
-      if (distInside >= 1.0) {
-        targetR = 155; targetG = 194; targetB = 179;
-      } else if (distInside >= -1.0) {
-        const alpha = (distInside + 1.0) / 2.0;
-        targetR = Math.round(155 * alpha + 249 * (1 - alpha));
-        targetG = Math.round(194 * alpha + 249 * (1 - alpha));
-        targetB = Math.round(179 * alpha + 249 * (1 - alpha));
-      } else {
-        targetR = 249; targetG = 249; targetB = 249;
-      }
-      masterBuf[idx] = Math.round(targetR * w + masterBuf[idx] * (1 - w));
-      masterBuf[idx + 1] = Math.round(targetG * w + masterBuf[idx + 1] * (1 - w));
-      masterBuf[idx + 2] = Math.round(targetB * w + masterBuf[idx + 2] * (1 - w));
     }
   }
 
-  // 15 passes relaxation in top-left for seamless silk texture
-  for (let iter = 0; iter < 15; iter++) {
-    for (let y = 30; y <= 145; y++) {
-      for (let x = 185; x <= 425; x++) {
+  // Clean residual vertical seam at x: 1942..1948, y: 150..350
+  for (let y = 150; y <= 350; y++) {
+    for (let x = 1942; x <= 1948; x++) {
+      const idx = (y * W + x) * 4;
+      const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+      if (Math.abs(g - r) <= 2 && r > 240) {
+        masterBuf[idx] = 249;
+        masterBuf[idx + 1] = 249;
+        masterBuf[idx + 2] = 249;
+      }
+    }
+  }
+
+  // Identify the notch region where white box cut into filaments:
+  // x: 1740..1935, y: 35..175 outside the circular crest
+  const trSlope = 0.55;
+  const trNotchMask = new Uint8Array(W * H);
+  for (let y = 35; y <= 175; y++) {
+    for (let x = 1740; x <= 1935; x++) {
+      const dx = x - cuhCenterX, dy = y - cuhCenterY;
+      const distToCenter = Math.sqrt(dx * dx + dy * dy);
+      if (distToCenter > cuhRadius - 5) {
         const idx = (y * W + x) * 4;
-        const idxL = (y * W + (x - 1)) * 4;
-        const idxR = (y * W + (x + 1)) * 4;
-        const idxU = ((y - 1) * W + x) * 4;
-        const idxD = ((y + 1) * W + x) * 4;
-        for (let c = 0; c < 3; c++) {
-          masterBuf[idx + c] = Math.round(((masterBuf[idxL + c] + masterBuf[idxR + c]) * 5 + (masterBuf[idxU + c] + masterBuf[idxD + c]) * 2 + masterBuf[idx + c] * 2) / 16);
+        const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        if (lum > 242 && Math.abs(g - r) <= 3) {
+          trNotchMask[y * W + x] = 1;
         }
       }
     }
   }
 
-  // -------------------------------------------------------------------
-  // B. AUTHENTIC NATURAL DOWNWARD SILK FLOW FOR TOP-RIGHT WAVE
-  // -------------------------------------------------------------------
-  console.log('3. Synthesizing authentic downward silk wave flow for top-right corner...');
-
-  const trTealPoints = [
-    { x: 1650, y: 8.0, th: 4 },
-    { x: 1680, y: 14.0, th: 8 },
-    { x: 1715, y: 26.0, th: 14 },
-    { x: 1755, y: 44.0, th: 18 },
-    { x: 1800, y: 66.0, th: 22 },
-    { x: 1850, y: 90.0, th: 24 },
-    { x: 1905, y: 116.0, th: 26 },
-    { x: 1965, y: 146.0, th: 27 },
-    { x: 2030, y: 182.0, th: 28 },
-    { x: 2100, y: 228.0, th: 26 },
-    { x: 2170, y: 278.0, th: 24 },
-    { x: 2215, y: 315.0, th: 20 },
-    { x: 2246, y: 345.0, th: 16 }
-  ];
-
-  const trMintPoints = [
-    { x: 1660, y: 18.0, th: 6 },
-    { x: 1690, y: 28.0, th: 9 },
-    { x: 1725, y: 44.0, th: 12 },
-    { x: 1765, y: 66.0, th: 14 },
-    { x: 1810, y: 90.0, th: 14 },
-    { x: 1860, y: 116.0, th: 14 },
-    { x: 1915, y: 144.0, th: 14 },
-    { x: 1975, y: 175.0, th: 13 },
-    { x: 2040, y: 212.0, th: 13 },
-    { x: 2110, y: 256.0, th: 12 },
-    { x: 2180, y: 306.0, th: 11 },
-    { x: 2246, y: 368.0, th: 9 }
-  ];
-
-  const trUpperMintPoints = [
-    { x: 1690, y: 8.0, th: 6 },
-    { x: 1725, y: 16.0, th: 9 },
-    { x: 1765, y: 28.0, th: 11 },
-    { x: 1810, y: 46.0, th: 13 },
-    { x: 1860, y: 68.0, th: 14 },
-    { x: 1915, y: 92.0, th: 14 },
-    { x: 1975, y: 120.0, th: 14 },
-    { x: 2040, y: 154.0, th: 13 },
-    { x: 2110, y: 196.0, th: 12 },
-    { x: 2180, y: 244.0, th: 11 },
-    { x: 2246, y: 295.0, th: 9 }
-  ];
-
-  // Pure white wipe in header and old CUH logo zone (x: 1500..1940, y: 0..310) to eliminate all residual cuts/notches
-  for (let y = 0; y <= 310; y++) {
-    for (let x = 1500; x <= 1940; x++) {
-      const idx = (y * W + x) * 4;
-      masterBuf[idx] = 249;
-      masterBuf[idx + 1] = 249;
-      masterBuf[idx + 2] = 249;
-      masterBuf[idx + 3] = 255;
-    }
-  }
-
-  // Draw the continuous triple ribbons across x: 1650..2246
-  for (let x = 1650; x < W; x++) {
-    const teal = interp(trTealPoints, x);
-    const mint = interp(trMintPoints, x);
-    const upperMint = interp(trUpperMintPoints, x);
-
-    const tealTop = teal.y - teal.th / 2;
-    const tealBot = teal.y + teal.th / 2;
-    const mintTop = mint.y - mint.th / 2;
-    const mintBot = mint.y + mint.th / 2;
-    const upTop = upperMint.y - upperMint.th / 2;
-    const upBot = upperMint.y + upperMint.th / 2;
-
-    // Weight fade: smooth cosine fade-in from 1650 to 1720, smooth blend at x > 2140 into right border wave
-    let w = 1.0;
-    if (x < 1720) w = 0.5 * (1 - Math.cos(Math.PI * (x - 1650) / 70));
-    else if (x > 2140) w = 0.5 * (1 + Math.cos(Math.PI * (x - 2140) / (W - 2140)));
-
-    // 1. Upper Mint Ribbon
-    if (x >= 1690) {
-      for (let y = Math.max(0, Math.round(upTop - 2)); y <= Math.round(upBot + 2); y++) {
-        const idx = (y * W + x) * 4;
-        const distInside = Math.min(y - upTop, upBot - y);
-        let targetR, targetG, targetB;
-        if (distInside >= 1.0) {
-          targetR = 175; targetG = 205; targetB = 192;
-        } else if (distInside >= -1.0) {
-          const alpha = (distInside + 1.0) / 2.0;
-          targetR = Math.round(175 * alpha + 249 * (1 - alpha));
-          targetG = Math.round(205 * alpha + 249 * (1 - alpha));
-          targetB = Math.round(192 * alpha + 249 * (1 - alpha));
-        } else {
-          continue;
+  // Inpaint the notch mask along the natural filament streamline slope m = 0.55
+  for (let y = 35; y <= 175; y++) {
+    for (let x = 1740; x <= 1935; x++) {
+      if (trNotchMask[y * W + x]) {
+        let sample = null;
+        for (let s = 1; s <= 50; s++) {
+          const sx = Math.round(x + s);
+          const sy = Math.round(y + s * trSlope);
+          if (sx < W && sy < H && !trNotchMask[sy * W + sx]) {
+            const idx = (sy * W + sx) * 4;
+            const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+            if (g < 240 && (g - r) >= 4) {
+              sample = [r, g, b];
+              break;
+            }
+          }
         }
-        masterBuf[idx] = Math.round(targetR * w + masterBuf[idx] * (1 - w));
-        masterBuf[idx + 1] = Math.round(targetG * w + masterBuf[idx + 1] * (1 - w));
-        masterBuf[idx + 2] = Math.round(targetB * w + masterBuf[idx + 2] * (1 - w));
+        if (!sample) {
+          for (let s = 1; s <= 50; s++) {
+            const sx = Math.round(x - s);
+            const sy = Math.round(y - s * trSlope);
+            if (sx >= 0 && sy >= 0 && !trNotchMask[sy * W + sx]) {
+              const idx = (sy * W + sx) * 4;
+              const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
+              if (g < 240 && (g - r) >= 4) {
+                sample = [r, g, b];
+                break;
+              }
+            }
+          }
+        }
+        if (sample) {
+          const idx = (y * W + x) * 4;
+          masterBuf[idx] = sample[0];
+          masterBuf[idx + 1] = sample[1];
+          masterBuf[idx + 2] = sample[2];
+        }
       }
-    }
-
-    // 2. White gap between Upper Mint and Teal
-    for (let y = Math.max(0, Math.round(upBot + 2)); y < Math.round(tealTop - 2); y++) {
-      if (x < 1950) {
-        const idx = (y * W + x) * 4;
-        masterBuf[idx] = Math.round(249 * w + masterBuf[idx] * (1 - w));
-        masterBuf[idx + 1] = Math.round(249 * w + masterBuf[idx + 1] * (1 - w));
-        masterBuf[idx + 2] = Math.round(249 * w + masterBuf[idx + 2] * (1 - w));
-      }
-    }
-
-    // 3. Teal Ribbon Core
-    for (let y = Math.max(0, Math.round(tealTop - 3)); y <= Math.round(tealBot + 3); y++) {
-      const idx = (y * W + x) * 4;
-      const distInside = Math.min(y - tealTop, tealBot - y);
-      let targetR, targetG, targetB;
-      if (distInside >= 1.5) {
-        targetR = 0; targetG = 169; targetB = 157;
-      } else if (distInside >= -1.0) {
-        const alpha = (distInside + 1.0) / 2.5;
-        targetR = Math.round(0 * alpha + 249 * (1 - alpha));
-        targetG = Math.round(169 * alpha + 249 * (1 - alpha));
-        targetB = Math.round(157 * alpha + 249 * (1 - alpha));
-      } else {
-        targetR = 249; targetG = 249; targetB = 249;
-      }
-      masterBuf[idx] = Math.round(targetR * w + masterBuf[idx] * (1 - w));
-      masterBuf[idx + 1] = Math.round(targetG * w + masterBuf[idx + 1] * (1 - w));
-      masterBuf[idx + 2] = Math.round(targetB * w + masterBuf[idx + 2] * (1 - w));
-    }
-
-    // 4. White gap between Teal and Lower Mint
-    for (let y = Math.round(tealBot + 3); y < Math.round(mintTop - 2); y++) {
-      if (x < 1950) {
-        const idx = (y * W + x) * 4;
-        masterBuf[idx] = Math.round(249 * w + masterBuf[idx] * (1 - w));
-        masterBuf[idx + 1] = Math.round(249 * w + masterBuf[idx + 1] * (1 - w));
-        masterBuf[idx + 2] = Math.round(249 * w + masterBuf[idx + 2] * (1 - w));
-      }
-    }
-
-    // 5. Lower Mint Ribbon
-    for (let y = Math.max(0, Math.round(mintTop - 2)); y <= Math.round(mintBot + 2); y++) {
-      const idx = (y * W + x) * 4;
-      const distInside = Math.min(y - mintTop, mintBot - y);
-      let targetR, targetG, targetB;
-      if (distInside >= 1.0) {
-        targetR = 155; targetG = 194; targetB = 179;
-      } else if (distInside >= -1.0) {
-        const alpha = (distInside + 1.0) / 2.0;
-        targetR = Math.round(155 * alpha + 249 * (1 - alpha));
-        targetG = Math.round(194 * alpha + 249 * (1 - alpha));
-        targetB = Math.round(179 * alpha + 249 * (1 - alpha));
-      } else {
-        targetR = 249; targetG = 249; targetB = 249;
-      }
-      masterBuf[idx] = Math.round(targetR * w + masterBuf[idx] * (1 - w));
-      masterBuf[idx + 1] = Math.round(targetG * w + masterBuf[idx + 1] * (1 - w));
-      masterBuf[idx + 2] = Math.round(targetB * w + masterBuf[idx + 2] * (1 - w));
     }
   }
 
-  // Smooth relaxation along ribbon stream tangent (preserving sharp transversal edges)
-  for (let iter = 0; iter < 10; iter++) {
-    for (let y = 10; y <= 360; y++) {
-      for (let x = 1680; x <= 2200; x++) {
-        const teal = interp(trTealPoints, x);
-        const distToTeal = Math.abs(y - teal.y);
-        // Keep core teal solid
-        if (distToTeal <= teal.th / 2 - 2) continue;
-
-        const idx = (y * W + x) * 4;
-        const idxL2 = ((y - 1) * W + (x - 2)) * 4;
-        const idxR2 = ((y + 1) * W + (x + 2)) * 4;
-        if (y > 0 && y < H - 1 && x > 1 && x < W - 2) {
-          for (let c = 0; c < 3; c++) {
-            masterBuf[idx + c] = Math.round(((masterBuf[idxL2 + c] + masterBuf[idxR2 + c]) * 5 + masterBuf[idx + c] * 6) / 16);
+  // Smooth ONLY the healed notch pixels along the streamline (preserving authentic sharpness everywhere else)
+  for (let iter = 0; iter < 4; iter++) {
+    for (let y = 37; y <= 173; y++) {
+      for (let x = 1742; x <= 1933; x++) {
+        if (trNotchMask[y * W + x]) {
+          const idx = (y * W + x) * 4;
+          const idxL = ((y - 1) * W + (x - 2)) * 4;
+          const idxR = ((y + 1) * W + (x + 2)) * 4;
+          if (x >= 2 && x < W - 2 && y >= 1 && y < H - 1) {
+            for (let c = 0; c < 3; c++) {
+              masterBuf[idx + c] = Math.round((masterBuf[idxL + c] * 5 + masterBuf[idxR + c] * 5 + masterBuf[idx + c] * 6) / 16);
+            }
           }
         }
       }

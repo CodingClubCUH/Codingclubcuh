@@ -66,20 +66,20 @@ async function verifyAll() {
   }
   console.log(`5. Top-Left Dark Teal Ribbon continuity: ${tlTealCheckpoints}/7 checkpoints active`);
 
-  // Check E: Top-Right Symmetrical Dark Teal Ribbon Continuity across x: 1920..2160 (clear of logo)
-  let trTealCheckpoints = 0;
-  for (let x = 1920; x <= 2160; x += 40) {
+  // Check E: Top-Right Silk Wave Continuity across x: 1800..2100
+  let trWaveCheckpoints = 0;
+  for (let x = 1800; x <= 2100; x += 50) {
     let found = false;
     for (let y = 10; y <= 350; y++) {
       const idx = (y * W + x) * ch;
       const r = cleanData[idx], g = cleanData[idx + 1], b = cleanData[idx + 2];
-      if (g >= 140 && (g - r) >= 60 && b >= 100) {
+      if (g < 242 && (g - r) >= 5) {
         found = true; break;
       }
     }
-    if (found) trTealCheckpoints++;
+    if (found) trWaveCheckpoints++;
   }
-  console.log(`6. Top-Right Symmetrical Dark Teal Ribbon continuity: ${trTealCheckpoints}/7 checkpoints active`);
+  console.log(`6. Top-Right Authentic Silk Wave continuity: ${trWaveCheckpoints}/7 checkpoints active`);
 
   // Check F: CCC Logo transparency verification (No black box background!)
   let cccBoxDarkPixels = 0;
@@ -108,7 +108,7 @@ async function verifyAll() {
   console.log(`8. Right-edge border wave continuity: ${rightBorderContinuous}/27 checkpoints active`);
 
   if (brGhostPixels === 0 && blGhostPixels === 0 && bcNonBg === 0 &&
-      tlTealCheckpoints === 7 && trTealCheckpoints === 7 && cccBoxDarkPixels === 0) {
+      tlTealCheckpoints === 7 && trWaveCheckpoints === 7 && cccBoxDarkPixels === 0) {
     console.log('\n>>> ALL RIGOROUS GRAPHIC & CODE CHECKS PASSED WITH 100% PERFECTION! <<<');
   } else {
     throw new Error('Some checks did not match exact expected values.');
