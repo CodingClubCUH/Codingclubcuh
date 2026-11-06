@@ -133,15 +133,15 @@ async function buildFlawlessMaster() {
   }
 
   // -------------------------------------------------------------------
-  // B. HEAL TOP-RIGHT AUTHENTIC SILK WAVE (Zero Intersecting Stripes)
+  // B. HEAL TOP-RIGHT AUTHENTIC SILK WAVE (Zero Intersecting Stripes, Zero Cuts)
   // -------------------------------------------------------------------
-  console.log('3. Healing top-right authentic silk wave (continuous filaments, zero intersections)...');
+  console.log('3. Healing top-right authentic silk wave (continuous filaments, zero cuts)...');
 
-  const cuhCenterX = 1807, cuhCenterY = 166, cuhRadius = 96;
+  const cuhCenterX = 1807, cuhCenterY = 142, cuhRadius = 86;
 
-  // Clear white background between header and CUH logo (x: 1660..1714, y: 0..300)
-  for (let y = 0; y <= 300; y++) {
-    for (let x = 1660; x <= 1714; x++) {
+  // Clear white background between header and CUH logo ONLY below ceiling wave (y >= 52)
+  for (let y = 52; y <= 320; y++) {
+    for (let x = 1565; x <= 1714; x++) {
       const idx = (y * W + x) * 4;
       masterBuf[idx] = 249;
       masterBuf[idx + 1] = 249;
@@ -150,11 +150,11 @@ async function buildFlawlessMaster() {
     }
   }
 
-  // Clear area inside the circular crest to 249 (the crisp new logo will sit on top)
-  for (let y = 50; y <= 280; y++) {
-    for (let x = 1710; x <= 1905; x++) {
+  // Clear area inside the circular crest to 249
+  for (let y = 56; y <= 276; y++) {
+    for (let x = 1718; x <= 1898; x++) {
       const dx = x - cuhCenterX, dy = y - cuhCenterY;
-      if (dx * dx + dy * dy <= cuhRadius * cuhRadius || y > 180) {
+      if (dx * dx + dy * dy <= (cuhRadius + 2) * (cuhRadius + 2) || (y >= 200 && y <= 265 && x >= 1720 && x <= 1895)) {
         const idx = (y * W + x) * 4;
         masterBuf[idx] = 249;
         masterBuf[idx + 1] = 249;
@@ -164,91 +164,47 @@ async function buildFlawlessMaster() {
     }
   }
 
-  // Clean residual vertical seam at x: 1942..1948, y: 150..350
-  for (let y = 150; y <= 350; y++) {
-    for (let x = 1942; x <= 1948; x++) {
+  // Inpaint the white gap in the top-right wave:
+  // Extend authentic silk filaments from x >= 1912 along natural streamline slope m = 0.55
+  const trSlope = 0.55;
+  for (let y = 45; y <= 260; y++) {
+    for (let x = 1720; x <= 1912; x++) {
       const idx = (y * W + x) * 4;
       const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
-      if (Math.abs(g - r) <= 2 && r > 240) {
-        masterBuf[idx] = 249;
-        masterBuf[idx + 1] = 249;
-        masterBuf[idx + 2] = 249;
+      if (r >= 246 && g >= 246 && b >= 246) {
+        const s = 1915 - x;
+        const refX = 1915;
+        const refY = y + s * trSlope;
+        if (refY >= 0 && refY < H - 1) {
+          const yFloor = Math.floor(refY);
+          const yFrac = refY - yFloor;
+          const idxA = (yFloor * W + refX) * 4;
+          const idxB = ((yFloor + 1) * W + refX) * 4;
+
+          const sampR = Math.round(data4a[idxA] * (1 - yFrac) + data4a[idxB] * yFrac);
+          const sampG = Math.round(data4a[idxA + 1] * (1 - yFrac) + data4a[idxB + 1] * yFrac);
+          const sampB = Math.round(data4a[idxA + 2] * (1 - yFrac) + data4a[idxB + 2] * yFrac);
+
+          if (sampG < 244 || (sampG - sampR) >= 2) {
+            masterBuf[idx] = sampR;
+            masterBuf[idx + 1] = sampG;
+            masterBuf[idx + 2] = sampB;
+          }
+        }
       }
     }
   }
 
-  // Identify the notch region where white box cut into filaments:
-  // x: 1740..1935, y: 35..175 outside the circular crest
-  const trSlope = 0.55;
-  const trNotchMask = new Uint8Array(W * H);
-  for (let y = 35; y <= 175; y++) {
-    for (let x = 1740; x <= 1935; x++) {
-      const dx = x - cuhCenterX, dy = y - cuhCenterY;
-      const distToCenter = Math.sqrt(dx * dx + dy * dy);
-      if (distToCenter > cuhRadius - 5) {
+  // Smooth ONLY the exact seam line at x: 1912..1916 along the streamline
+  for (let iter = 0; iter < 2; iter++) {
+    for (let y = 48; y <= 255; y++) {
+      for (let x = 1912; x <= 1916; x++) {
         const idx = (y * W + x) * 4;
-        const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
-        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-        if (lum > 242 && Math.abs(g - r) <= 3) {
-          trNotchMask[y * W + x] = 1;
-        }
-      }
-    }
-  }
-
-  // Inpaint the notch mask along the natural filament streamline slope m = 0.55
-  for (let y = 35; y <= 175; y++) {
-    for (let x = 1740; x <= 1935; x++) {
-      if (trNotchMask[y * W + x]) {
-        let sample = null;
-        for (let s = 1; s <= 50; s++) {
-          const sx = Math.round(x + s);
-          const sy = Math.round(y + s * trSlope);
-          if (sx < W && sy < H && !trNotchMask[sy * W + sx]) {
-            const idx = (sy * W + sx) * 4;
-            const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
-            if (g < 240 && (g - r) >= 4) {
-              sample = [r, g, b];
-              break;
-            }
-          }
-        }
-        if (!sample) {
-          for (let s = 1; s <= 50; s++) {
-            const sx = Math.round(x - s);
-            const sy = Math.round(y - s * trSlope);
-            if (sx >= 0 && sy >= 0 && !trNotchMask[sy * W + sx]) {
-              const idx = (sy * W + sx) * 4;
-              const r = masterBuf[idx], g = masterBuf[idx + 1], b = masterBuf[idx + 2];
-              if (g < 240 && (g - r) >= 4) {
-                sample = [r, g, b];
-                break;
-              }
-            }
-          }
-        }
-        if (sample) {
-          const idx = (y * W + x) * 4;
-          masterBuf[idx] = sample[0];
-          masterBuf[idx + 1] = sample[1];
-          masterBuf[idx + 2] = sample[2];
-        }
-      }
-    }
-  }
-
-  // Smooth ONLY the healed notch pixels along the streamline (preserving authentic sharpness everywhere else)
-  for (let iter = 0; iter < 4; iter++) {
-    for (let y = 37; y <= 173; y++) {
-      for (let x = 1742; x <= 1933; x++) {
-        if (trNotchMask[y * W + x]) {
-          const idx = (y * W + x) * 4;
-          const idxL = ((y - 1) * W + (x - 2)) * 4;
-          const idxR = ((y + 1) * W + (x + 2)) * 4;
-          if (x >= 2 && x < W - 2 && y >= 1 && y < H - 1) {
-            for (let c = 0; c < 3; c++) {
-              masterBuf[idx + c] = Math.round((masterBuf[idxL + c] * 5 + masterBuf[idxR + c] * 5 + masterBuf[idx + c] * 6) / 16);
-            }
+        const idxL = ((y - 1) * W + (x - 1)) * 4;
+        const idxR = ((y + 1) * W + (x + 1)) * 4;
+        if (y > 0 && y < H - 1 && x > 0 && x < W - 1) {
+          for (let c = 0; c < 3; c++) {
+            masterBuf[idx + c] = Math.round((masterBuf[idxL + c] * 3 + masterBuf[idxR + c] * 3 + masterBuf[idx + c] * 10) / 16);
           }
         }
       }
@@ -486,11 +442,13 @@ async function buildFlawlessMaster() {
   }
 
   // -------------------------------------------------------------------
-  // E. CLEAN HEADER DIVIDER & CENTERED VECTOR ORNAMENT
+  // E. CLEAN HEADER DIVIDER & CENTERED VECTOR ORNAMENT (Zero Stray Artifacts)
   // -------------------------------------------------------------------
   console.log('6. Cleaning header divider area and generating ornament...');
-  for (let y = 238; y <= 265; y++) {
-    for (let x = 550; x <= 1690; x++) {
+  // Completely wipe entire region between header text and title CERTIFICATE to pure 249
+  // This eradicates any ghost chopped flower ornament at y: 260..295, x: 1000..1120
+  for (let y = 170; y <= 320; y++) {
+    for (let x = 500; x <= 1720; x++) {
       const idx = (y * W + x) * 4;
       masterBuf[idx] = 249;
       masterBuf[idx + 1] = 249;

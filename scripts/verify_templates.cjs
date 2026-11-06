@@ -107,9 +107,46 @@ async function verifyAll() {
   }
   console.log(`8. Right-edge border wave continuity: ${rightBorderContinuous}/27 checkpoints active`);
 
+  // Check H: Divider line area ghost ornament check (Zero extra elements!)
+  // In 4a438fd, a ghost chopped flower ornament existed at y: 280..295, x: 1000..1120.
+  // It must now have 0 non-background pixels.
+  let dividerGhostPixels = 0;
+  for (let y = 280; y <= 305; y++) {
+    for (let x = 1000; x <= 1150; x++) {
+      const idx = (y * W + x) * ch;
+      if (cleanData[idx] !== 249 || cleanData[idx + 1] !== 249 || cleanData[idx + 2] !== 249) {
+        dividerGhostPixels++;
+      }
+    }
+  }
+  for (let y = 272; y <= 305; y++) {
+    for (let x = 1000; x <= 1105; x++) {
+      const idx = (y * W + x) * ch;
+      if (cleanData[idx] !== 249 || cleanData[idx + 1] !== 249 || cleanData[idx + 2] !== 249) {
+        dividerGhostPixels++;
+      }
+    }
+  }
+  console.log(`9. Divider line ghost chopped ornament pixels: ${dividerGhostPixels} (Expected: 0)`);
+
+  // Check I: Top border ceiling wave continuity across x: 1620..1720, y: 10..45
+  let ceilingWaveCheckpoints = 0;
+  for (let x = 1620; x <= 1720; x += 20) {
+    let found = false;
+    for (let y = 10; y <= 45; y++) {
+      const idx = (y * W + x) * ch;
+      if (cleanData[idx + 1] - cleanData[idx] >= 3 || cleanData[idx] < 244) {
+        found = true; break;
+      }
+    }
+    if (found) ceilingWaveCheckpoints++;
+  }
+  console.log(`10. Ceiling top border wave continuity: ${ceilingWaveCheckpoints}/6 checkpoints active`);
+
   if (brGhostPixels === 0 && blGhostPixels === 0 && bcNonBg === 0 &&
-      tlTealCheckpoints === 7 && trWaveCheckpoints === 7 && cccBoxDarkPixels === 0) {
-    console.log('\n>>> ALL RIGOROUS GRAPHIC & CODE CHECKS PASSED WITH 100% PERFECTION! <<<');
+      tlTealCheckpoints === 7 && trWaveCheckpoints === 7 && cccBoxDarkPixels === 0 &&
+      dividerGhostPixels === 0 && ceilingWaveCheckpoints === 6) {
+    console.log('\n>>> ALL 10 RIGOROUS GRAPHIC & CODE CHECKS PASSED WITH 100% PERFECTION! <<<');
   } else {
     throw new Error('Some checks did not match exact expected values.');
   }
