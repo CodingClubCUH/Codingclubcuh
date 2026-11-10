@@ -35,6 +35,7 @@ import { Enrollments } from "./payload/collections/Enrollments";
 import { ContactMessages } from "./payload/collections/ContactMessages";
 import { SentNotices } from "./payload/collections/SentNotices";
 import { nodemailerEmailAdapter } from "./lib/payloadEmailAdapter";
+import { migrations } from "./migrations";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -153,6 +154,7 @@ export default buildConfig({
       connectionTimeoutMillis: 15000,
     },
     push: false,
+    prodMigrations: migrations,
   }),
   collections: [
     Courses,
@@ -295,6 +297,11 @@ export default buildConfig({
             "reset_at" bigint NOT NULL
           );
           CREATE INDEX IF NOT EXISTS "rate_limits_reset_at_idx" ON "rate_limits" ("reset_at");
+
+          ALTER TABLE IF EXISTS "payload_locked_documents_rels" ADD COLUMN IF NOT EXISTS "contact_messages_id" integer;
+          ALTER TABLE IF EXISTS "payload_locked_documents_rels" ADD COLUMN IF NOT EXISTS "sent_notices_id" integer;
+          CREATE INDEX IF NOT EXISTS "payload_locked_documents_rels_contact_messages_id_idx" ON "payload_locked_documents_rels" ("contact_messages_id");
+          CREATE INDEX IF NOT EXISTS "payload_locked_documents_rels_sent_notices_id_idx" ON "payload_locked_documents_rels" ("sent_notices_id");
         `;
         if (db?.pool?.query) {
           await db.pool.query(contactNoticeTablesSql);
