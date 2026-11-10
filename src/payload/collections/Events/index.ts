@@ -1,9 +1,9 @@
 import type { CollectionConfig } from 'payload'
 import { slugField } from '@/payload/fields/slug'
-import { anyone } from '../access/anyone'
-import { isAdmin } from '../access/isAdmin'
-import { revalidateEvent, revalidateEventDelete } from './Events/hooks/revalidateEvent'
-import { getEffectiveEventStatus } from '../utilities/eventStatus'
+import { anyone } from '../../access/anyone'
+import { isAdmin } from '../../access/isAdmin'
+import { revalidateEvent, revalidateEventDelete } from './hooks/revalidateEvent'
+import { getEffectiveEventStatus } from '../../utilities/eventStatus'
 
 export const Events: CollectionConfig = {
   slug: 'events',

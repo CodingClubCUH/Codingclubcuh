@@ -32,6 +32,8 @@ import { Courses } from "./payload/collections/Courses";
 import { Certificates } from "./payload/collections/Certificates";
 import { Objectives } from "./payload/collections/Objectives";
 import { Enrollments } from "./payload/collections/Enrollments";
+import { ContactMessages } from "./payload/collections/ContactMessages";
+import { SentNotices } from "./payload/collections/SentNotices";
 import { nodemailerEmailAdapter } from "./lib/payloadEmailAdapter";
 
 const filename = fileURLToPath(import.meta.url);
@@ -80,7 +82,7 @@ export default buildConfig({
     meta: {
       title: "Coding Club CUH - Admin Portal",
       description:
-        "coding club is evolving to be more than just the a coding club. It supports an entire ecosystem — from practical learning to innovate.",
+        "coding club is evolving to be more than just the a coding club. It supports an entire ecosystem â€” from practical learning to innovate.",
       icons: [
         {
           rel: "icon",
@@ -95,7 +97,7 @@ export default buildConfig({
       ],
       openGraph: {
         description:
-          "coding club is evolving to be more than just the a coding club. It supports an entire ecosystem — from practical learning to innovate.",
+          "coding club is evolving to be more than just the a coding club. It supports an entire ecosystem â€” from practical learning to innovate.",
         title: "Coding Club Cuh - for students by students",
       },
       titleSuffix: "- for students by students",
@@ -168,6 +170,8 @@ export default buildConfig({
     Achievements,
     Certificates,
     Objectives,
+    ContactMessages,
+    SentNotices,
   ],
   cors: [
     getServerSideURL(),
@@ -241,6 +245,65 @@ export default buildConfig({
         }
       } catch (colErr) {
         payload.logger.warn(`Notice on certificates column migration: ${colErr}`);
+      }
+
+      // Ensure contact_messages and sent_notices tables exist for persistent serverless storage
+      try {
+        const contactNoticeTablesSql = `
+          CREATE TABLE IF NOT EXISTS "contact_messages" (
+            "id" serial PRIMARY KEY,
+            "name" varchar NOT NULL,
+            "email" varchar NOT NULL,
+            "subject" varchar NOT NULL,
+            "message" text NOT NULL,
+            "channel" varchar DEFAULT 'website',
+            "status" varchar DEFAULT 'unread',
+            "admin_notes" text,
+            "reply_message" text,
+            "replied_at" timestamp(3) with time zone,
+            "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+            "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS "contact_messages_status_idx" ON "contact_messages" ("status");
+          CREATE INDEX IF NOT EXISTS "contact_messages_created_at_idx" ON "contact_messages" ("created_at");
+
+          CREATE TABLE IF NOT EXISTS "sent_notices" (
+            "id" serial PRIMARY KEY,
+            "subject" varchar NOT NULL,
+            "message" text NOT NULL,
+            "category" varchar NOT NULL,
+            "recipients_count" numeric DEFAULT 0,
+            "recipients" jsonb,
+            "unregistered_count" numeric DEFAULT 0,
+            "registered_count" numeric DEFAULT 0,
+            "cta_text" varchar,
+            "cta_url" varchar,
+            "sent_by" varchar,
+            "sender_email" varchar,
+            "status" varchar DEFAULT 'sent',
+            "failed_count" numeric DEFAULT 0,
+            "errors" jsonb,
+            "sent_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+            "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+            "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS "sent_notices_sent_at_idx" ON "sent_notices" ("sent_at");
+
+          CREATE TABLE IF NOT EXISTS "rate_limits" (
+            "key" varchar(255) PRIMARY KEY,
+            "count" integer DEFAULT 1,
+            "reset_at" bigint NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS "rate_limits_reset_at_idx" ON "rate_limits" ("reset_at");
+        `;
+        if (db?.pool?.query) {
+          await db.pool.query(contactNoticeTablesSql);
+        } else if (db?.drizzle?.execute) {
+          const { sql } = await import('@payloadcms/db-postgres/drizzle');
+          await db.drizzle.execute(sql.raw(contactNoticeTablesSql));
+        }
+      } catch (cnErr) {
+        payload.logger.warn(`Notice on contact_messages and sent_notices table setup: ${cnErr}`);
       }
 
       if (isInitialized) {

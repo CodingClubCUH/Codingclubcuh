@@ -1,44 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CLUB_SYSTEM_PROMPT, getSmartFallbackResponse } from "@/lib/chatbot-data";
-import fs from "fs";
-import path from "path";
+import {
+  getClientIp,
+  checkRateLimit,
+  createRateLimitResponse,
+  RATE_LIMIT_CONFIGS,
+} from "@/lib/rateLimit";
 
 interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
 }
 
-function resolveGeminiApiKey(clientKey?: string): string | undefined {
-  if (clientKey && clientKey.trim()) return clientKey.trim();
-  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()) {
-    return process.env.GEMINI_API_KEY.trim();
-  }
-  if (process.env.NEXT_PUBLIC_GEMINI_API_KEY && process.env.NEXT_PUBLIC_GEMINI_API_KEY.trim()) {
-    return process.env.NEXT_PUBLIC_GEMINI_API_KEY.trim();
-  }
-
-  // Fallback: Read directly from .env file from disk (handles cases where next dev was started prior to adding the key)
-  try {
-    const envPath = path.resolve(process.cwd(), ".env");
-    if (fs.existsSync(envPath)) {
-      const content = fs.readFileSync(envPath, "utf-8");
-      const match = content.match(/GEMINI_API_KEY\s*=\s*(["']?)([^"'\r\n]+)\1/);
-      if (match && match[2] && match[2].trim()) {
-        return match[2].trim();
-      }
-    }
-  } catch (err) {
-    console.warn("Could not read .env from disk:", err);
-  }
-
-  return undefined;
+function getGeminiApiKey(): string | undefined {
+  const key = process.env.GEMINI_API_KEY;
+  return key && key.trim() ? key.trim() : undefined;
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const clientIp = getClientIp(req);
+    const rateLimit = await checkRateLimit(clientIp, RATE_LIMIT_CONFIGS.chat);
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit, {
+        error: "Too many messages sent. Please slow down.",
+        message: {
+          role: "assistant",
+          content: `You are sending messages too quickly. Please wait ${rateLimit.retryAfter} second${rateLimit.retryAfter === 1 ? "" : "s"} before asking another question.`,
+        },
+      });
+    }
+
     const body = await req.json();
     const messages: ChatMessage[] = Array.isArray(body?.messages) ? body.messages : [];
-    const clientGeminiKey: string | undefined = body?.apiKey;
 
     if (messages.length === 0) {
       return NextResponse.json(
@@ -58,7 +52,7 @@ export async function POST(req: NextRequest) {
         ? `${CLUB_SYSTEM_PROMPT}\n\nSPECIAL FOCUS [HACKATHON & CAREER COACH MODE]: Focus on project architecture, pitch strategies, interview prep, resumes, and winning hackathon frameworks. Answer any question the user asks thoroughly.`
         : `${CLUB_SYSTEM_PROMPT}\n\nSPECIAL FOCUS [CLUB GUIDE MODE]: Guide the user on campus events, courses, certificates, team coordinators, university navigation, and any general knowledge or technical question the user asks.`;
 
-    const geminiApiKey = resolveGeminiApiKey(clientGeminiKey);
+    const geminiApiKey = getGeminiApiKey();
 
     // 1. Google Gemini Generative AI Call
     if (geminiApiKey) {
@@ -89,15 +83,17 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Most reliable models in verified order: gemini-3.8-flash, gemini-3.5-flash, gemini-3.7-flash, gemini-3.6-flash, gemini-3.1-flash-lite, gemini-3-flash-preview, gemini-flash-latest
+        // Most reliable models in verified order
         const modelsToTry = [
+          "gemini-2.5-flash",
+          "gemini-2.5-flash-lite",
+          "gemini-flash-latest",
           "gemini-3.8-flash",
           "gemini-3.5-flash",
           "gemini-3.7-flash",
           "gemini-3.6-flash",
           "gemini-3.1-flash-lite",
           "gemini-3-flash-preview",
-          "gemini-flash-latest",
         ];
 
         let generatedText: string | null = null;
@@ -105,10 +101,13 @@ export async function POST(req: NextRequest) {
         for (const model of modelsToTry) {
           try {
             const geminiRes = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
               {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-goog-api-key": geminiApiKey,
+                },
                 body: JSON.stringify({
                   systemInstruction: {
                     parts: [{ text: personaPrompt }],
@@ -136,11 +135,10 @@ export async function POST(req: NextRequest) {
                 break;
               }
             } else {
-              const errBody = await geminiRes.text();
-              console.warn(`Gemini model ${model} status ${geminiRes.status}:`, errBody);
+              console.warn(`Gemini model ${model} returned HTTP status ${geminiRes.status}`);
             }
-          } catch (modelErr) {
-            console.warn(`Error connecting to Gemini model ${model}:`, modelErr);
+          } catch {
+            console.warn(`Failed to connect to Gemini model ${model}`);
           }
         }
 
@@ -156,8 +154,8 @@ export async function POST(req: NextRequest) {
             suggestedFollowUps: generateFollowUpSuggestions(userQuery),
           });
         }
-      } catch (geminiError) {
-        console.error("AI API call failed:", geminiError);
+      } catch {
+        console.error("AI API call failed");
       }
     }
 

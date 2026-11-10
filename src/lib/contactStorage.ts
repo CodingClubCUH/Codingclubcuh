@@ -1,3 +1,5 @@
+import { getPayload } from 'payload'
+import configPromise from '@payload-config'
 import fs from 'fs'
 import path from 'path'
 
@@ -16,63 +18,126 @@ export interface ContactMessage {
   updatedAt: string
 }
 
-const DATA_DIR = path.join(process.cwd(), 'src', 'data')
-const FILE_PATH = path.join(DATA_DIR, 'contact-messages.json')
+const SEED_MESSAGES: Omit<ContactMessage, 'id' | 'createdAt' | 'updatedAt'>[] = [
+  {
+    name: 'Rahul Verma',
+    email: 'rahul.verma@cuh.ac.in',
+    subject: 'Inquiry regarding Upcoming Web Development Bootcamp',
+    message: 'Hello Coding Club team, I am a 2nd year B.Tech CSE student. I would like to know if students from other departments can also join the weekend full-stack bootcamps and how the selection works.',
+    channel: 'website',
+    status: 'unread',
+  },
+  {
+    name: 'Priya Sharma',
+    email: 'priyasharma.mca@gmail.com',
+    subject: 'Certificate verification query for Git & GitHub Masterclass',
+    message: 'Hi, I completed the Git workshop last month but had an issue with the spelling in my name on the certificate. Could someone please help me get it corrected?',
+    channel: 'website',
+    status: 'read',
+  },
+  {
+    name: 'Amit Kumar',
+    email: 'amit.maths@cuh.ac.in',
+    subject: 'Speaker / Workshop Collaboration Proposal',
+    message: 'Greetings! I am writing on behalf of the Department of Mathematics. We are organizing a National Seminar on Mathematical Computing and would love to collaborate with Coding Club CUH for a hands-on Python workshop.',
+    channel: 'website',
+    status: 'replied',
+    replyMessage: 'Dear Amit, Thank you for reaching out. We would be delighted to collaborate. Our student instructors have prepared a curriculum on NumPy & SciPy. Let us connect over a short meeting.',
+    repliedAt: new Date(Date.now() - 3600 * 1000 * 12).toISOString(),
+  },
+]
 
-function ensureFileExists() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true })
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function formatContactDoc(doc: any): ContactMessage {
+  return {
+    id: String(doc.id),
+    name: doc.name || '',
+    email: doc.email || '',
+    subject: doc.subject || '',
+    message: doc.message || '',
+    channel: doc.channel || 'website',
+    status: doc.status || 'unread',
+    adminNotes: doc.adminNotes || undefined,
+    replyMessage: doc.replyMessage || undefined,
+    repliedAt: doc.repliedAt || undefined,
+    createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : new Date().toISOString(),
   }
-  if (!fs.existsSync(FILE_PATH)) {
-    const seedData: ContactMessage[] = [
-      {
-        id: 'msg-seed-1',
-        name: 'Rahul Verma',
-        email: 'rahul.verma@cuh.ac.in',
-        subject: 'Inquiry regarding Upcoming Web Development Bootcamp',
-        message: 'Hello Coding Club team, I am a 2nd year B.Tech CSE student. I would like to know if students from other departments can also join the weekend full-stack bootcamps and how the selection works.',
-        channel: 'website',
-        status: 'unread',
-        createdAt: new Date(Date.now() - 3600 * 1000 * 4).toISOString(),
-        updatedAt: new Date(Date.now() - 3600 * 1000 * 4).toISOString(),
-      },
-      {
-        id: 'msg-seed-2',
-        name: 'Priya Sharma',
-        email: 'priyasharma.mca@gmail.com',
-        subject: 'Certificate verification query for Git & GitHub Masterclass',
-        message: 'Hi, I completed the Git workshop last month but had an issue with the spelling in my name on the certificate. Could someone please help me get it corrected?',
-        channel: 'website',
-        status: 'read',
-        createdAt: new Date(Date.now() - 3600 * 1000 * 24).toISOString(),
-        updatedAt: new Date(Date.now() - 3600 * 1000 * 20).toISOString(),
-      },
-      {
-        id: 'msg-seed-3',
-        name: 'Amit Kumar',
-        email: 'amit.maths@cuh.ac.in',
-        subject: 'Speaker / Workshop Collaboration Proposal',
-        message: 'Greetings! I am writing on behalf of the Department of Mathematics. We are organizing a National Seminar on Mathematical Computing and would love to collaborate with Coding Club CUH for a hands-on Python workshop.',
-        channel: 'website',
-        status: 'replied',
-        replyMessage: 'Dear Amit, Thank you for reaching out. We would be delighted to collaborate. Our student instructors have prepared a curriculum on NumPy & SciPy. Let us connect over a short meeting.',
-        repliedAt: new Date(Date.now() - 3600 * 1000 * 12).toISOString(),
-        createdAt: new Date(Date.now() - 3600 * 1000 * 48).toISOString(),
-        updatedAt: new Date(Date.now() - 3600 * 1000 * 12).toISOString(),
-      },
-    ]
-    fs.writeFileSync(FILE_PATH, JSON.stringify(seedData, null, 2), 'utf-8')
+}
+
+let contactMigrationDone = false
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function ensureContactDataMigrated(payload: any) {
+  if (contactMigrationDone) return
+  contactMigrationDone = true
+
+  try {
+    const existing = await payload.find({
+      collection: 'contact-messages',
+      limit: 1,
+    })
+
+    if (existing.totalDocs === 0) {
+      // Check if there are legacy messages in src/data/contact-messages.json
+      const legacyPath = path.join(process.cwd(), 'src', 'data', 'contact-messages.json')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let toMigrate: any[] = []
+
+      if (fs.existsSync(legacyPath)) {
+        try {
+          const raw = fs.readFileSync(legacyPath, 'utf-8')
+          const parsed = JSON.parse(raw || '[]')
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            toMigrate = parsed
+          }
+        } catch {
+          // Ignore legacy read error
+        }
+      }
+
+      if (toMigrate.length === 0) {
+        toMigrate = SEED_MESSAGES
+      }
+
+      for (const item of toMigrate) {
+        try {
+          await payload.create({
+            collection: 'contact-messages',
+            data: {
+              name: item.name || 'Anonymous',
+              email: item.email || 'student@cuh.ac.in',
+              subject: item.subject || 'Inquiry',
+              message: item.message || '',
+              channel: item.channel || 'website',
+              status: item.status || 'unread',
+              adminNotes: item.adminNotes,
+              replyMessage: item.replyMessage,
+              repliedAt: item.repliedAt,
+            },
+          })
+        } catch (itemErr) {
+          console.warn('[CONTACT MIGRATION] Failed to migrate record:', itemErr)
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[CONTACT MIGRATION] Database not ready or check skipped:', err)
   }
 }
 
 export async function getAllContactMessages(): Promise<ContactMessage[]> {
   try {
-    ensureFileExists()
-    const content = fs.readFileSync(FILE_PATH, 'utf-8')
-    const messages: ContactMessage[] = JSON.parse(content || '[]')
-    return messages.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
+    const payload = await getPayload({ config: configPromise })
+    await ensureContactDataMigrated(payload)
+
+    const result = await payload.find({
+      collection: 'contact-messages',
+      limit: 1000,
+      sort: '-createdAt',
+    })
+
+    return (result.docs || []).map(formatContactDoc)
   } catch (err) {
     console.error('[CONTACT STORAGE ERROR] Failed to read contact messages:', err)
     return []
@@ -80,57 +145,129 @@ export async function getAllContactMessages(): Promise<ContactMessage[]> {
 }
 
 export async function getContactMessageById(id: string): Promise<ContactMessage | null> {
-  const all = await getAllContactMessages()
-  return all.find((m) => m.id === id) || null
+  try {
+    const payload = await getPayload({ config: configPromise })
+    const numId = Number(id)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let doc: any = null
+    if (!isNaN(numId)) {
+      doc = await payload.findByID({
+        collection: 'contact-messages',
+        id: numId,
+      }).catch(() => null)
+    }
+
+    if (!doc) {
+      const searchRes = await payload.find({
+        collection: 'contact-messages',
+        where: {
+          id: {
+            equals: id,
+          },
+        },
+        limit: 1,
+      }).catch(() => ({ docs: [] }))
+      doc = searchRes.docs?.[0] || null
+    }
+
+    return doc ? formatContactDoc(doc) : null
+  } catch (err) {
+    console.error(`[CONTACT STORAGE ERROR] Failed to fetch message ${id}:`, err)
+    return null
+  }
 }
 
 export async function createContactMessage(
   data: Omit<ContactMessage, 'id' | 'createdAt' | 'updatedAt' | 'status'>
 ): Promise<ContactMessage> {
-  ensureFileExists()
-  const all = await getAllContactMessages()
+  try {
+    const payload = await getPayload({ config: configPromise })
+    const doc = await payload.create({
+      collection: 'contact-messages',
+      data: {
+        name: data.name,
+        email: data.email,
+        subject: data.subject,
+        message: data.message,
+        channel: data.channel || 'website',
+        status: 'unread',
+        adminNotes: data.adminNotes,
+      },
+    })
 
-  const newMessage: ContactMessage = {
-    id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-    ...data,
-    channel: data.channel || 'website',
-    status: 'unread',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    return formatContactDoc(doc)
+  } catch (err) {
+    console.error('[CONTACT STORAGE ERROR] Failed to create contact message:', err)
+    // Fallback object to prevent breaking callers if DB temporarily errors
+    return {
+      id: `err-${Date.now()}`,
+      ...data,
+      channel: data.channel || 'website',
+      status: 'unread',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
   }
-
-  all.unshift(newMessage)
-  fs.writeFileSync(FILE_PATH, JSON.stringify(all, null, 2), 'utf-8')
-  return newMessage
 }
 
 export async function updateContactMessage(
   id: string,
-  updates: Partial<Omit<ContactMessage, 'id' | 'createdAt'>>
+  updates: Partial<ContactMessage>
 ): Promise<ContactMessage | null> {
-  ensureFileExists()
-  const all = await getAllContactMessages()
-  const index = all.findIndex((m) => m.id === id)
-  if (index === -1) return null
+  try {
+    const payload = await getPayload({ config: configPromise })
+    const numId = Number(id)
 
-  all[index] = {
-    ...all[index],
-    ...updates,
-    updatedAt: new Date().toISOString(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: any = {}
+    if (updates.status) updateData.status = updates.status
+    if (updates.adminNotes !== undefined) updateData.adminNotes = updates.adminNotes
+    if (updates.replyMessage !== undefined) updateData.replyMessage = updates.replyMessage
+    if (updates.repliedAt !== undefined) updateData.repliedAt = updates.repliedAt
+
+    let targetId: number | string = numId
+    if (isNaN(numId)) {
+      const existing = await getContactMessageById(id)
+      if (!existing) return null
+      targetId = Number(existing.id) || existing.id
+    }
+
+    const updated = await payload.update({
+      collection: 'contact-messages',
+      id: targetId,
+      data: updateData,
+    })
+
+    return updated ? formatContactDoc(updated) : null
+  } catch (err) {
+    console.error(`[CONTACT STORAGE ERROR] Failed to update message ${id}:`, err)
+    return null
   }
-
-  fs.writeFileSync(FILE_PATH, JSON.stringify(all, null, 2), 'utf-8')
-  return all[index]
 }
 
 export async function deleteContactMessage(id: string): Promise<boolean> {
-  ensureFileExists()
-  const all = await getAllContactMessages()
-  const filtered = all.filter((m) => m.id !== id)
-  if (filtered.length === all.length) return false
+  try {
+    const payload = await getPayload({ config: configPromise })
+    const numId = Number(id)
 
-  fs.writeFileSync(FILE_PATH, JSON.stringify(filtered, null, 2), 'utf-8')
-  return true
+    let targetId: number | string = numId
+    if (isNaN(numId)) {
+      const existing = await getContactMessageById(id)
+      if (!existing) return false
+      targetId = Number(existing.id) || existing.id
+    }
+
+    await payload.delete({
+      collection: 'contact-messages',
+      id: targetId,
+    })
+
+    return true
+  } catch (err) {
+    console.error(`[CONTACT STORAGE ERROR] Failed to delete message ${id}:`, err)
+    return false
+  }
 }
 
 export async function getContactStats(): Promise<{
@@ -139,11 +276,15 @@ export async function getContactStats(): Promise<{
   read: number
   replied: number
 }> {
-  const all = await getAllContactMessages()
-  return {
-    total: all.length,
-    unread: all.filter((m) => m.status === 'unread').length,
-    read: all.filter((m) => m.status === 'read').length,
-    replied: all.filter((m) => m.status === 'replied').length,
+  try {
+    const messages = await getAllContactMessages()
+    return {
+      total: messages.length,
+      unread: messages.filter((m) => m.status === 'unread').length,
+      read: messages.filter((m) => m.status === 'read').length,
+      replied: messages.filter((m) => m.status === 'replied').length,
+    }
+  } catch {
+    return { total: 0, unread: 0, read: 0, replied: 0 }
   }
 }

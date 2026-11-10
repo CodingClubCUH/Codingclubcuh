@@ -1,30 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { headers, cookies } from 'next/headers'
+import { getAuthUser } from '@/payload/utilities/getAuthUser'
 
 export async function POST(req: Request) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const headersList = await headers()
-    const cookieStore = await cookies()
-    const token = cookieStore.get('payload-token')?.value
-
-    // Authenticate user session
-    let authResult = await payload.auth({ headers: headersList })
-    let user = authResult.user
-
-    // Fallback: check JWT token if headers didn't catch the cookie
-    if (!user && token) {
-      try {
-        const customHeaders = new Headers(headersList)
-        customHeaders.set('Authorization', `JWT ${token}`)
-        authResult = await payload.auth({ headers: customHeaders })
-        user = authResult.user
-      } catch {
-        // Fallback failed
-      }
-    }
+    const { user } = await getAuthUser(payload)
 
     if (!user) {
       return NextResponse.json(

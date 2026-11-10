@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { headers, cookies } from 'next/headers'
+import { getAuthUser } from '@/payload/utilities/getAuthUser'
 import { sendCertificateEmail } from '@/lib/email'
+import { generateCertificateId } from '@/payload/utilities/generateCertificateId'
 
 // Helper to format Month and Year, e.g. "Sept 2026" or "June 2025"
 function formatMonthYear(dateString?: string | null): { batchLabel: string; monthName: string; yearNumber: number } {
@@ -28,38 +29,11 @@ function formatMonthYear(dateString?: string | null): { batchLabel: string; mont
 // ─────────────────────────────────────────────────────────────────────────────
 // GET: Fetch Courses & Batches or Enrolled Students with Issuance Status
 // ─────────────────────────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function authenticateAdmin(payload: any) {
-  const headersList = await headers()
-  const cookieStore = await cookies()
-  const token = cookieStore.get('payload-token')?.value
-
-  let authResult = await payload.auth({ headers: headersList })
-  let user = authResult.user
-
-  if (!user && token) {
-    try {
-      const customHeaders = new Headers(headersList)
-      customHeaders.set('Authorization', `JWT ${token}`)
-      authResult = await payload.auth({ headers: customHeaders })
-      user = authResult.user
-    } catch {
-      // Fallback failed
-    }
-  }
-
-  const isAdmin = user?.role === 'admin'
-  if (!user || !isAdmin) {
-    return null
-  }
-  return user
-}
-
 export async function GET(req: Request) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const user = await authenticateAdmin(payload)
-    if (!user) {
+    const { user, isAdmin } = await getAuthUser(payload)
+    if (!user || !isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized. Only administrators can access certificate and student data.' },
         { status: 403 }
@@ -257,26 +231,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const headersList = await headers()
-    const cookieStore = await cookies()
-    const token = cookieStore.get('payload-token')?.value
-
     // 1. Authenticate user
-    let authResult = await payload.auth({ headers: headersList })
-    let user = authResult.user
-
-    if (!user && token) {
-      try {
-        const customHeaders = new Headers(headersList)
-        customHeaders.set('Authorization', `JWT ${token}`)
-        authResult = await payload.auth({ headers: customHeaders })
-        user = authResult.user
-      } catch {
-        // Fallback failed
-      }
-    }
-
-    const isAdmin = user?.role === 'admin'
+    const { user, isAdmin } = await getAuthUser(payload)
     if (!user || !isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized. Only administrators can issue or manage certificates.' },
@@ -488,37 +444,61 @@ export async function POST(req: Request) {
 
         // 1. Create Certificate if not exists, or retrieve existing
         if (!certDoc || !certDoc.id) {
-          const year = new Date().getFullYear()
-          const randomNum = Math.floor(1000 + Math.random() * 9000)
-          certificateId = `CCCUH-CRS-${year}-${randomNum}`
-          isNewCert = true
+          const MAX_RETRIES = 5
+          let createdCert: any = null
 
-          // Build certificate document with auto-extracted details, today's issue date, and global signatures
-          certDoc = await payload.create({
-            collection: 'certificates',
-            context: { fromIssueRoute: true },
-            data: {
-              student: studentObj.id,
-              studentName,
-              department: studentObj.department || ((courseObj.department === 'Computer Science' || courseObj.department === 'Information Technology' || courseObj.department === 'Other')
-                ? courseObj.department
-                : 'Computer Science and IT'),
-              course: studentObj.course || 'Other',
-              semester: studentObj.semester || 'Completed',
-              internship: courseTitle,
-              startDate: courseObj.startingDate || new Date().toISOString(),
-              endDate: courseObj.completionDate || new Date().toISOString(),
-              issueDate: new Date().toISOString(), // automatically fetched current day
-              isIssued: true,
-              certificateId,
-              courseRef: courseObj.id,
-              ...(globalSignatures.signatureInstructor ? { signatureInstructor: globalSignatures.signatureInstructor } : {}),
-              ...(globalSignatures.signatureCoordinator ? { signatureCoordinator: globalSignatures.signatureCoordinator } : {}),
-              ...(globalSignatures.signatureStudentCoordinator ? { signatureStudentCoordinator: globalSignatures.signatureStudentCoordinator } : {}),
-            },
-          })
+          for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            const candidateId = generateCertificateId('CRS')
 
-          results.certificatesCreated++
+            // Ensure not already used
+            const existingWithId = await payload.find({
+              collection: 'certificates',
+              where: { certificateId: { equals: candidateId } },
+              limit: 1,
+            })
+            if (existingWithId.docs.length > 0) continue
+
+            try {
+              createdCert = await payload.create({
+                collection: 'certificates',
+                context: { fromIssueRoute: true },
+                data: {
+                  student: studentObj.id,
+                  studentName,
+                  department: studentObj.department || ((courseObj.department === 'Computer Science' || courseObj.department === 'Information Technology' || courseObj.department === 'Other')
+                    ? courseObj.department
+                    : 'Computer Science and IT'),
+                  course: studentObj.course || 'Other',
+                  semester: studentObj.semester || 'Completed',
+                  internship: courseTitle,
+                  startDate: courseObj.startingDate || new Date().toISOString(),
+                  endDate: courseObj.completionDate || new Date().toISOString(),
+                  issueDate: new Date().toISOString(), // automatically fetched current day
+                  isIssued: true,
+                  certificateId: candidateId,
+                  courseRef: courseObj.id,
+                  ...(globalSignatures.signatureInstructor ? { signatureInstructor: globalSignatures.signatureInstructor } : {}),
+                  ...(globalSignatures.signatureCoordinator ? { signatureCoordinator: globalSignatures.signatureCoordinator } : {}),
+                  ...(globalSignatures.signatureStudentCoordinator ? { signatureStudentCoordinator: globalSignatures.signatureStudentCoordinator } : {}),
+                },
+              })
+              certificateId = candidateId
+              certDoc = createdCert
+              isNewCert = true
+              results.certificatesCreated++
+              break
+            } catch (createErr: any) {
+              const isDuplicate =
+                createErr?.message?.toLowerCase().includes('unique') ||
+                createErr?.code === '23505'
+              if (isDuplicate && attempt < MAX_RETRIES) continue
+              throw createErr
+            }
+          }
+
+          if (!createdCert) {
+            throw new Error(`Failed to generate a unique certificate ID for student ${studentName} after multiple attempts.`)
+          }
         } else {
           certificateId = certDoc.certificateId
           results.certificatesUpdated++

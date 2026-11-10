@@ -37,9 +37,10 @@ export const Users: CollectionConfig = {
             const certs = await payload.find({
               collection: 'certificates',
               where: {
-                student: {
-                  equals: doc.id,
-                },
+                and: [
+                  { student: { equals: doc.id } },
+                  { isIssued: { not_equals: true } },
+                ],
               },
               limit: 200,
             })

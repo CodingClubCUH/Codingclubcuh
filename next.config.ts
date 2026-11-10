@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     staticGenerationMaxConcurrency: 4,
   },
   images: {
-    unoptimized: true,
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -27,6 +27,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'randomuser.me',
       },
       {
@@ -40,6 +44,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
       },
     ],
   },

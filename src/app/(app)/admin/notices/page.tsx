@@ -3,13 +3,27 @@ import NoticeBroadcast from "@/components/payload-admin/NoticeBroadcast";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { redirect } from "next/navigation";
+import { getAuthUser } from "@/payload/utilities/getAuthUser";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Student Notice Broadcast - Coding Club CUH Admin",
   description: "Select student emails and broadcast announcements, updates, and workshop notices at once.",
 };
 
-export default function NoticesPage() {
+export default async function NoticesPage() {
+  const { user, isAdmin } = await getAuthUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  if (!isAdmin) {
+    redirect("/student");
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6">
       <div className="max-w-[1440px] mx-auto mb-6 flex items-center justify-between">

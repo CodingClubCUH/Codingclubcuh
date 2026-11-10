@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { headers, cookies } from 'next/headers'
 import { uploadToCloudinary } from '@/payload/utilities/cloudinary'
+import { getAuthUser } from '@/payload/utilities/getAuthUser'
 
 const ALLOWED_MIME_TYPES = new Set([
   'image/jpeg',
@@ -17,25 +17,9 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 export async function POST(req: Request) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const headersList = await headers()
-    const cookieStore = await cookies()
-    const token = cookieStore.get('payload-token')?.value
+    const { isAdmin } = await getAuthUser(payload)
 
-    let authResult = await payload.auth({ headers: headersList })
-    let user = authResult.user
-
-    if (!user && token) {
-      try {
-        const customHeaders = new Headers(headersList)
-        customHeaders.set('Authorization', `JWT ${token}`)
-        authResult = await payload.auth({ headers: customHeaders })
-        user = authResult.user
-      } catch {
-        // Fallback failed
-      }
-    }
-
-    if (!user || user.role !== 'admin') {
+    if (!isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized. Only administrators can upload media assets.' },
         { status: 403 }

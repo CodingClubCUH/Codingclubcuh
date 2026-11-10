@@ -82,6 +82,8 @@ export interface Config {
     achievements: Achievement;
     certificates: Certificate;
     objectives: Objective;
+    'contact-messages': ContactMessage;
+    'sent-notices': SentNotice;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -109,6 +111,8 @@ export interface Config {
     achievements: AchievementsSelect<false> | AchievementsSelect<true>;
     certificates: CertificatesSelect<false> | CertificatesSelect<true>;
     objectives: ObjectivesSelect<false> | ObjectivesSelect<true>;
+    'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
+    'sent-notices': SentNoticesSelect<false> | SentNoticesSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -1250,6 +1254,77 @@ export interface Objective {
   createdAt: string;
 }
 /**
+ * Inquiries and questions submitted via website contact form and external channels.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-messages".
+ */
+export interface ContactMessage {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  channel?: ('website' | 'email' | 'telegram' | 'other') | null;
+  status?: ('unread' | 'read' | 'replied') | null;
+  /**
+   * Internal admin notes for this inquiry.
+   */
+  adminNotes?: string | null;
+  /**
+   * Sent email reply content.
+   */
+  replyMessage?: string | null;
+  repliedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Broadcast email notice history and recipient dispatch logs.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sent-notices".
+ */
+export interface SentNotice {
+  id: number;
+  subject: string;
+  message: string;
+  category: string;
+  recipientsCount?: number | null;
+  /**
+   * List of recipient email addresses.
+   */
+  recipients?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  unregisteredCount?: number | null;
+  registeredCount?: number | null;
+  ctaText?: string | null;
+  ctaUrl?: string | null;
+  sentBy?: string | null;
+  senderEmail?: string | null;
+  status?: ('sent' | 'partially_sent' | 'failed' | 'simulated') | null;
+  failedCount?: number | null;
+  errors?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  sentAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
@@ -1498,6 +1573,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'objectives';
         value: number | Objective;
+      } | null)
+    | ({
+        relationTo: 'contact-messages';
+        value: number | ContactMessage;
+      } | null)
+    | ({
+        relationTo: 'sent-notices';
+        value: number | SentNotice;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -2052,6 +2135,46 @@ export interface ObjectivesSelect<T extends boolean = true> {
   imageUrl?: T;
   showOnWebsite?: T;
   order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-messages_select".
+ */
+export interface ContactMessagesSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  subject?: T;
+  message?: T;
+  channel?: T;
+  status?: T;
+  adminNotes?: T;
+  replyMessage?: T;
+  repliedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sent-notices_select".
+ */
+export interface SentNoticesSelect<T extends boolean = true> {
+  subject?: T;
+  message?: T;
+  category?: T;
+  recipientsCount?: T;
+  recipients?: T;
+  unregisteredCount?: T;
+  registeredCount?: T;
+  ctaText?: T;
+  ctaUrl?: T;
+  sentBy?: T;
+  senderEmail?: T;
+  status?: T;
+  failedCount?: T;
+  errors?: T;
+  sentAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -3,13 +3,27 @@ import ContactHub from "@/components/payload-admin/ContactHub";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { redirect } from "next/navigation";
+import { getAuthUser } from "@/payload/utilities/getAuthUser";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "How People Contact Us - Coding Club CUH Admin",
   description: "View, manage, and reply to all student questions and inquiries received through contact channels.",
 };
 
-export default function ContactHubPage() {
+export default async function ContactHubPage() {
+  const { user, isAdmin } = await getAuthUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  if (!isAdmin) {
+    redirect("/student");
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6">
       <div className="max-w-[1440px] mx-auto mb-6 flex items-center justify-between">

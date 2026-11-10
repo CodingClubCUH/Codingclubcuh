@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { headers, cookies } from 'next/headers'
+import { getAuthUser } from '@/payload/utilities/getAuthUser'
 
 interface SiteSettingsGlobal {
   maintenanceMode?: boolean
@@ -45,25 +45,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const payload = (await getPayload({ config: configPromise })) as unknown as MaintenancePayloadClient
-    const headersList = await headers()
-    const cookieStore = await cookies()
-    const token = cookieStore.get('payload-token')?.value
-
-    let authResult = await payload.auth({ headers: headersList })
-    let user = authResult.user
-
-    if (!user && token) {
-      try {
-        const customHeaders = new Headers(headersList)
-        customHeaders.set('Authorization', `JWT ${token}`)
-        authResult = await payload.auth({ headers: customHeaders })
-        user = authResult.user
-      } catch {
-        // Auth fallback failed
-      }
-    }
-
-    const isAdmin = user?.role === 'admin'
+    const { isAdmin } = await getAuthUser(payload as any)
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required.' },

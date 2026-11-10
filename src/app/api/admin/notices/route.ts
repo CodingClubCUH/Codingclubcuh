@@ -1,43 +1,14 @@
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { headers, cookies } from 'next/headers'
 import { sendNoticeEmail } from '@/lib/email'
 import { getAllSentNotices, saveSentNotice } from '@/lib/noticeStorage'
-
-async function checkIsAdmin(): Promise<{ isAdmin: boolean; user?: { id?: string | number; role?: string; email?: string } | null }> {
-  try {
-    const payload = await getPayload({ config: configPromise })
-    const headersList = await headers()
-    const cookieStore = await cookies()
-    const token = cookieStore.get('payload-token')?.value
-
-    let authResult = await payload.auth({ headers: headersList })
-    let user = authResult.user
-
-    if (!user && token) {
-      try {
-        const customHeaders = new Headers(headersList)
-        customHeaders.set('Authorization', `JWT ${token}`)
-        authResult = await payload.auth({ headers: customHeaders })
-        user = authResult.user
-      } catch {
-        // Fallback
-      }
-    }
-
-    if (!user) return { isAdmin: false, user: null }
-    const isAdmin = user.role === 'admin'
-    return { isAdmin, user }
-  } catch {
-    return { isAdmin: false, user: null }
-  }
-}
+import { getAuthUser } from '@/payload/utilities/getAuthUser'
 
 // GET: Fetch all student recipients and past broadcast notices
 export async function GET() {
   try {
-    const { isAdmin } = await checkIsAdmin()
+    const { isAdmin } = await getAuthUser()
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized. Admin credentials required.' },
@@ -88,7 +59,7 @@ export async function GET() {
 // POST: Broadcast notice to selected student emails at once
 export async function POST(req: Request) {
   try {
-    const { isAdmin, user } = await checkIsAdmin()
+    const { isAdmin, user } = await getAuthUser()
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized. Admin credentials required.' },

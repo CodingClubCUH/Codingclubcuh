@@ -1,30 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { headers, cookies } from 'next/headers'
+import { getAuthUser } from '@/payload/utilities/getAuthUser'
 
 // GET: Fetch currently logged-in student's details
 export async function GET(req: Request) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const headersList = await headers()
-    const cookieStore = await cookies()
-    const token = cookieStore.get('payload-token')?.value
-
-    let authResult = await payload.auth({ headers: headersList })
-    let user = authResult.user
-
-    if (!user && token) {
-      try {
-        const customHeaders = new Headers(headersList)
-        customHeaders.set('Authorization', `JWT ${token}`)
-        authResult = await payload.auth({ headers: customHeaders })
-        user = authResult.user
-      } catch {
-        // Fallback failed
-      }
-    }
-
+    const { user, isAdmin } = await getAuthUser(payload)
     if (!user) {
       return NextResponse.json(
         { error: 'You must be logged in to view your details.' },
@@ -34,7 +17,6 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url)
     const queryStudentId = searchParams.get('studentId')
-    const isAdmin = user.role === 'admin'
 
     // Block non-admins during maintenance mode
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,25 +67,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const headersList = await headers()
-    const cookieStore = await cookies()
-    const token = cookieStore.get('payload-token')?.value
-
-    // Authenticate user
-    let authResult = await payload.auth({ headers: headersList })
-    let user = authResult.user
-
-    if (!user && token) {
-      try {
-        const customHeaders = new Headers(headersList)
-        customHeaders.set('Authorization', `JWT ${token}`)
-        authResult = await payload.auth({ headers: customHeaders })
-        user = authResult.user
-      } catch {
-        // Fallback failed
-      }
-    }
-
+    const { user, isAdmin } = await getAuthUser(payload)
     if (!user) {
       return NextResponse.json(
         { error: 'You must be logged in to update your details.' },
@@ -114,7 +78,6 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}))
     const { course, semester, department, name, studentId } = body
 
-    const isAdmin = user.role === 'admin'
 
     // Block non-admins during maintenance mode
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -160,20 +123,23 @@ export async function POST(req: Request) {
       data: updateData,
     })
 
-    // 2. Retroactively update all certificates linked to this student
-    // so any verified certificate immediately reflects their updated details
+    // 2. Sync unissued (draft) certificates linked to this student
+    // Issued certificates remain strictly immutable to preserve credential integrity
     const existingCerts = await payload.find({
       collection: 'certificates',
       where: {
-        student: {
-          equals: targetUserId,
-        },
+        and: [
+          { student: { equals: targetUserId } },
+          { isIssued: { not_equals: true } },
+        ],
       },
       limit: 200,
     })
 
     let syncedCertCount = 0
     for (const cert of existingCerts.docs) {
+      if (cert.isIssued) continue
+
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const certUpdate: any = {

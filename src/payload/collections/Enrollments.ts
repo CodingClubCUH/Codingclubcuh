@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { isAdmin, isAdminFieldLevel, isAdminOrStudentOwner, canCreateEnrollment } from '../access/isAdmin'
 import { sendCertificateEmail } from '@/lib/email'
+import { generateCertificateId } from '../utilities/generateCertificateId'
 
 export const Enrollments: CollectionConfig = {
   slug: 'enrollments',
@@ -64,32 +65,57 @@ export const Enrollments: CollectionConfig = {
 
             if (!course || !student) return
 
-            const year = new Date().getFullYear()
-            const randomNum = Math.floor(1000 + Math.random() * 9000)
-            const certificateId = `CCCUH-CRS-${year}-${randomNum}`
             const studentName = student.name || student.username || 'Student'
+            let certificateId = ''
+            let certDoc: any = null
 
-            // Create official certificate document
-            const certDoc = await payload.create({
-              collection: 'certificates',
-              data: {
-                student: student.id,
-                studentName,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                department: (student as any).department || ((course.department === 'Computer Science' || course.department === 'Information Technology' || course.department === 'Other') ? course.department : 'Computer Science and IT'),
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                course: (student as any).course || 'Other',
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                semester: (student as any).semester || 'Completed',
-                internship: course.title,
-                startDate: course.startingDate,
-                endDate: course.completionDate || new Date().toISOString(),
-                issueDate: new Date().toISOString(),
-                isIssued: true,
-                certificateId,
-                courseRef: course.id,
-              },
-            })
+            // Collision-resistant generation with uniqueness check and retry loop
+            const MAX_RETRIES = 5
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+              const candidateId = generateCertificateId('CRS')
+
+              const existingCert = await payload.find({
+                collection: 'certificates',
+                where: { certificateId: { equals: candidateId } },
+                limit: 1,
+              })
+              if (existingCert.docs.length > 0) continue
+
+              try {
+                certDoc = await payload.create({
+                  collection: 'certificates',
+                  data: {
+                    student: student.id,
+                    studentName,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    department: (student as any).department || ((course.department === 'Computer Science' || course.department === 'Information Technology' || course.department === 'Other') ? course.department : 'Computer Science and IT'),
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    course: (student as any).course || 'Other',
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    semester: (student as any).semester || 'Completed',
+                    internship: course.title,
+                    startDate: course.startingDate,
+                    endDate: course.completionDate || new Date().toISOString(),
+                    issueDate: new Date().toISOString(),
+                    isIssued: true,
+                    certificateId: candidateId,
+                    courseRef: course.id,
+                  },
+                })
+                certificateId = candidateId
+                break
+              } catch (createErr: any) {
+                const isDuplicate =
+                  createErr?.message?.toLowerCase().includes('unique') ||
+                  createErr?.code === '23505'
+                if (isDuplicate && attempt < MAX_RETRIES) continue
+                throw createErr
+              }
+            }
+
+            if (!certDoc) {
+              throw new Error('Failed to generate a unique certificate ID after multiple attempts.')
+            }
 
             let certificateSent = false
             let certificateSentAt: string | undefined = undefined

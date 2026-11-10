@@ -1,7 +1,24 @@
-import type { CollectionConfig } from 'payload'
-import { anyone } from '../access/anyone'
+import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
+import { canReadCertificates, canReadCertificateStudent } from '../access/canReadCertificates'
 import { isAdmin } from '../access/isAdmin'
 import { sendCertificateEmail } from '@/lib/email'
+import { generateCertificateId } from '../utilities/generateCertificateId'
+
+/**
+ * Enforces strict immutability on issued certificates.
+ * Once a certificate is marked as issued (`isIssued: true`), it cannot be updated.
+ * Draft (unissued) certificates remain editable until issued.
+ */
+export const enforceCertificateImmutability: CollectionBeforeChangeHook = ({
+  operation,
+  originalDoc,
+  data,
+}) => {
+  if (operation === 'update' && originalDoc?.isIssued) {
+    throw new Error('Issued certificates are immutable and cannot be modified.')
+  }
+  return data
+}
 
 export const Certificates: CollectionConfig = {
   slug: 'certificates',
@@ -11,13 +28,14 @@ export const Certificates: CollectionConfig = {
     group: 'Club Core',
   },
   access: {
-    read: anyone,
+    read: canReadCertificates,
     create: isAdmin,
     update: isAdmin,
     delete: isAdmin,
   },
   hooks: {
     beforeChange: [
+      enforceCertificateImmutability,
       async ({ data, req: { payload } }) => {
         if (!data.issueDate) {
           data.issueDate = new Date().toISOString();
@@ -279,9 +297,7 @@ export const Certificates: CollectionConfig = {
         beforeValidate: [
           ({ value }) => {
             if (!value) {
-              const year = new Date().getFullYear();
-              const randomNum = Math.floor(1000 + Math.random() * 9000);
-              return `CCCUH-INT-${year}-${randomNum}`;
+              return generateCertificateId('INT');
             }
             return value.trim();
           }
@@ -311,6 +327,9 @@ export const Certificates: CollectionConfig = {
       label: 'Student (User Account)',
       type: 'relationship',
       relationTo: 'users',
+      access: {
+        read: canReadCertificateStudent,
+      },
       admin: {
         position: 'sidebar',
         description: 'Link this certificate to the student\'s login account so they can see it in their dashboard.',

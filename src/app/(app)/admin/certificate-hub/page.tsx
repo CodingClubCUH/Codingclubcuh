@@ -2,13 +2,27 @@ import React, { Suspense } from "react";
 import CertificateHub from "@/components/payload-admin/CertificateHub";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { redirect } from "next/navigation";
+import { getAuthUser } from "@/payload/utilities/getAuthUser";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Course Certificate Hub - Coding Club CUH",
   description: "Browse batches by month & year, manage students, and issue official certificates.",
 };
 
-export default function CertificateHubPage() {
+export default async function CertificateHubPage() {
+  const { user, isAdmin } = await getAuthUser();
+
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  if (!isAdmin) {
+    redirect("/student");
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6">
       <div className="max-w-[1440px] mx-auto mb-6 flex items-center justify-between">

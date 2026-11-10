@@ -1,6 +1,5 @@
 import canUseDOM from './canUseDOM'
 
-
 export const getServerSideURL = (): string => {
   let url = process.env.NEXT_PUBLIC_SERVER_URL
 
@@ -9,13 +8,12 @@ export const getServerSideURL = (): string => {
   }
 
   if (!url) {
-    url = process.env.NODE_ENV === 'production' ? 'https://codingclubcuh.online' : 'http://localhost:3000'
+    const port = process.env.PORT || '3001'
+    url = process.env.NODE_ENV === 'production' ? 'https://codingclubcuh.online' : `http://localhost:${port}`
   }
 
   return url
 }
-
-export const getServerSideURL2 = getServerSideURL
 
 export const getClientSideURL = () => {
   if (canUseDOM) {
@@ -28,5 +26,3 @@ export const getClientSideURL = () => {
 
   return getServerSideURL()
 }
-
-export const getClientSideURL2 = getClientSideURL

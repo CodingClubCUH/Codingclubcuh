@@ -1,39 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { headers, cookies } from 'next/headers'
 import { uploadToCloudinary } from '@/payload/utilities/cloudinary'
+import { getAuthUser } from '@/payload/utilities/getAuthUser'
 
 export const dynamic = 'force-dynamic'
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024 // 25MB
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function authenticateAdmin(payload: any) {
-  const headersList = await headers()
-  const cookieStore = await cookies()
-  const token = cookieStore.get('payload-token')?.value
-
-  let authResult = await payload.auth({ headers: headersList })
-  let user = authResult.user
-
-  if (!user && token) {
-    try {
-      const customHeaders = new Headers(headersList)
-      customHeaders.set('Authorization', `JWT ${token}`)
-      authResult = await payload.auth({ headers: customHeaders })
-      user = authResult.user
-    } catch {
-      // Fallback failed
-    }
-  }
-
-  const isAdmin = user?.role === 'admin'
-  if (!user || !isAdmin) {
-    return null
-  }
-  return user
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET: Check ID duplicate or list existing hard-copy certificates
@@ -41,8 +14,8 @@ async function authenticateAdmin(payload: any) {
 export async function GET(req: Request) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const user = await authenticateAdmin(payload)
-    if (!user) {
+    const { user, isAdmin } = await getAuthUser(payload)
+    if (!user || !isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized. Only administrators can access hard-copy certificate records.' },
         { status: 403 }
@@ -124,8 +97,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const payload = await getPayload({ config: configPromise })
-    const user = await authenticateAdmin(payload)
-    if (!user) {
+    const { user, isAdmin } = await getAuthUser(payload)
+    if (!user || !isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized. Only administrators can upload hard-copy certificates.' },
         { status: 403 }

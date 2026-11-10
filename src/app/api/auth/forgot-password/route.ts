@@ -1,9 +1,23 @@
 import { NextResponse } from 'next/server'
 import { getPayload, type Where } from 'payload'
 import configPromise from '@payload-config'
+import {
+  getClientIp,
+  checkRateLimit,
+  createRateLimitResponse,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rateLimit'
 
 export async function POST(req: Request) {
   try {
+    const clientIp = getClientIp(req)
+    const rateLimit = await checkRateLimit(clientIp, RATE_LIMIT_CONFIGS.authForgotPassword)
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit, {
+        error: `Too many password reset requests. Please try again in ${rateLimit.retryAfter} seconds.`,
+      })
+    }
+
     const body = await req.json()
     const identifier = (body.identifier || body.email || body.username || '').trim()
 

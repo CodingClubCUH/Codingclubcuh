@@ -1,41 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
-import { headers, cookies } from 'next/headers'
 import { getContactMessageById, updateContactMessage } from '@/lib/contactStorage'
 import { sendContactReplyEmail } from '@/lib/email'
-
-async function checkIsAdmin(): Promise<boolean> {
-  try {
-    const payload = await getPayload({ config: configPromise })
-    const headersList = await headers()
-    const cookieStore = await cookies()
-    const token = cookieStore.get('payload-token')?.value
-
-    let authResult = await payload.auth({ headers: headersList })
-    let user = authResult.user
-
-    if (!user && token) {
-      try {
-        const customHeaders = new Headers(headersList)
-        customHeaders.set('Authorization', `JWT ${token}`)
-        authResult = await payload.auth({ headers: customHeaders })
-        user = authResult.user
-      } catch {
-        // Fallback
-      }
-    }
-
-    if (!user) return false
-    return user.role === 'admin'
-  } catch {
-    return false
-  }
-}
+import { getAuthUser } from '@/payload/utilities/getAuthUser'
 
 export async function POST(req: Request) {
   try {
-    const isAdmin = await checkIsAdmin()
+    const { isAdmin } = await getAuthUser()
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'Unauthorized. Admin credentials required.' },

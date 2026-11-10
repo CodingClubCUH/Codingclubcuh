@@ -1,6 +1,6 @@
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { cookies, headers } from 'next/headers'
+import { getAuthUser } from '@/payload/utilities/getAuthUser'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -26,54 +26,7 @@ import { StudentDashboardClient } from '@/components/student/student-dashboard-c
 export default async function StudentDashboard() {
   const payload = await getPayload({ config: configPromise })
 
-  const headersList = await headers()
-  const cookieStore = await cookies()
-  const token = cookieStore.get('payload-token')?.value
-
-  if (!token) {
-    redirect('/auth/login')
-  }
-
-  let user = null
-  try {
-    // 1. Authenticate in-process via Payload using request headers (cookie payload-token)
-    const authResult = await payload.auth({ headers: headersList })
-    user = authResult?.user
-
-    // 2. If cookie from headersList didn't resolve, verify using explicit JWT Authorization header
-    if (!user && token) {
-      const customHeaders = new Headers(headersList)
-      customHeaders.set('Authorization', `JWT ${token}`)
-      const tokenAuth = await payload.auth({ headers: customHeaders })
-      user = tokenAuth?.user
-    }
-  } catch (error) {
-    console.error('Failed to authenticate student session via payload.auth', error)
-  }
-
-  // 3. Robust fallback to local API route if in-process auth didn't return user
-  if (!user && token) {
-    try {
-      const serverUrl =
-        process.env.NEXT_PUBLIC_SERVER_URL ||
-        process.env.URL ||
-        'http://localhost:3001'
-      const meReq = await fetch(`${serverUrl}/api/users/me`, {
-        headers: {
-          Authorization: `JWT ${token}`,
-        },
-        cache: 'no-store',
-      }).catch(() => null)
-
-      if (meReq?.ok) {
-        const meData = await meReq.json()
-        user = meData?.user
-      }
-    } catch (err) {
-      console.error('Failed fallback fetch user session', err)
-    }
-  }
-
+  const { user } = await getAuthUser(payload)
   if (!user) {
     redirect('/auth/login')
   }
@@ -401,7 +354,7 @@ export default async function StudentDashboard() {
                 <StudentDashboardClient
                   user={{
                     id: user.id,
-                    name: user.name,
+                    name: user.name ?? "",
                     email: user.email,
                     username: user.username,
                     course: user.course,
@@ -417,7 +370,7 @@ export default async function StudentDashboard() {
                   <StudentDashboardClient
                     user={{
                       id: user.id,
-                      name: user.name,
+                      name: user.name ?? "",
                       email: user.email,
                       username: user.username,
                       course: user.course,

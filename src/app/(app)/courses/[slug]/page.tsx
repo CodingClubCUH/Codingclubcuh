@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getPayload } from "payload";
 import configPromise from "@payload-config";
 import Link from "next/link";
-import { cookies } from "next/headers";
+import { getAuthUser } from "@/payload/utilities/getAuthUser";
 import { Calendar, User, BookOpen, Award, ArrowLeft, ShieldCheck, Mail } from "lucide-react";
 import { EnrollButton } from "./enroll-button";
 import type { Course } from "@/payload-types";
@@ -45,30 +45,24 @@ export default async function CourseDetailPage({ params }: PageProps) {
   }
 
   // 2. Check if current user is logged in and already enrolled
-  const cookieStore = await cookies();
-  const token = cookieStore.get("payload-token")?.value;
   let isAlreadyEnrolled = false;
+  const { user } = await getAuthUser(payload);
 
-  if (token) {
+  if (user) {
     try {
-      const authResult = await payload.auth({
-        headers: new Headers({ Authorization: `JWT ${token}` }),
+      const enrollmentCheck = await payload.find({
+        collection: "enrollments",
+        where: {
+          and: [
+            { student: { equals: user.id } },
+            { course: { equals: course.id } },
+          ],
+        },
+        limit: 1,
       });
-      if (authResult.user) {
-        const enrollmentCheck = await payload.find({
-          collection: "enrollments",
-          where: {
-            and: [
-              { student: { equals: authResult.user.id } },
-              { course: { equals: course.id } },
-            ],
-          },
-          limit: 1,
-        });
-        isAlreadyEnrolled = (enrollmentCheck.docs?.length || 0) > 0;
-      }
+      isAlreadyEnrolled = (enrollmentCheck.docs?.length || 0) > 0;
     } catch {
-      // Ignore auth check errors
+      // Ignore check errors
     }
   }
 
