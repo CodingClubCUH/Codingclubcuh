@@ -70,6 +70,51 @@ export async function POST(req: Request) {
       )
     }
 
+    // Support JSON payload for registering client-side direct-to-blob uploads
+    const contentType = req.headers.get('content-type') || ''
+    if (contentType.includes('application/json')) {
+      const body = await req.json()
+      const clientDocs = Array.isArray(body.docs) ? body.docs : body.doc ? [body.doc] : []
+      if (clientDocs.length === 0) {
+        return NextResponse.json({ success: false, error: 'No media records provided.' }, { status: 400 })
+      }
+      if (clientDocs.length > MAX_BATCH_FILES) {
+        return NextResponse.json(
+          { success: false, error: `Batch size exceeds maximum limit of ${MAX_BATCH_FILES} files.` },
+          { status: 400 }
+        )
+      }
+
+      const createdDocs = []
+      for (const item of clientDocs) {
+        const altText = item.alt || item.filename?.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') || 'Uploaded image'
+        const folder = item.folder || 'gallery/2026'
+        const mediaDoc = await payload.create({
+          collection: 'media',
+          overrideAccess: true,
+          data: {
+            alt: altText,
+            folder: folder,
+            filename: item.filename,
+            url: item.url,
+            filesize: item.filesize || item.size || null,
+            width: item.width || null,
+            height: item.height || null,
+            mimeType: item.mimeType || item.type || 'image/jpeg',
+          },
+        })
+        createdDocs.push({
+          id: mediaDoc.id,
+          filename: mediaDoc.filename,
+          url: mediaDoc.url,
+          alt: mediaDoc.alt,
+          width: mediaDoc.width,
+          height: mediaDoc.height,
+        })
+      }
+      return NextResponse.json({ success: true, docs: createdDocs })
+    }
+
     const formData = await req.formData()
     const files = formData.getAll('files') as File[]
     const singleFile = formData.get('file') as File | null
@@ -164,50 +209,93 @@ export async function POST(req: Request) {
       })
     }
 
-    // Upload all files concurrently to Cloudinary and create Media documents
-    const createdDocs = await Promise.all(
-      validatedFiles.map(async ({ file, buffer, mimeType }) => {
+    // Process files independently to handle partial failures gracefully without duplicate or orphaned records
+    const createdDocs: {
+      id: number | string
+      filename: string
+      url: string
+      alt?: string | null
+      width?: number | null
+      height?: number | null
+    }[] = []
+    const failedFiles: { filename: string; error: string }[] = []
+
+    for (const { file, buffer, mimeType } of validatedFiles) {
+      try {
         const altText = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
         const folder = 'gallery/2026'
 
-        // 1. Upload directly to Cloudinary
-        const uploadResult = await uploadToCloudinary(
-          buffer,
-          file.name,
-          mimeType,
-          `codingclub/${folder}`
-        )
+        let mediaDoc: any
 
-        // 2. Persist media document in Payload DB
-        const mediaDoc = await payload.create({
-          collection: 'media',
-          overrideAccess: true,
-          data: {
-            alt: altText,
-            folder: folder,
-            filename: `${uploadResult.public_id.split('/').pop()}.${uploadResult.format || 'jpg'}`,
-            url: uploadResult.secure_url,
-            filesize: uploadResult.bytes || buffer.length,
-            width: uploadResult.width || null,
-            height: uploadResult.height || null,
-            mimeType: `image/${uploadResult.format || 'jpeg'}`,
-          },
-        })
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+          // Official Payload file upload flow using configured storage adapter (Vercel Blob)
+          mediaDoc = await payload.create({
+            collection: 'media',
+            overrideAccess: true,
+            data: {
+              alt: altText,
+              folder: folder,
+            },
+            file: {
+              data: buffer,
+              name: file.name,
+              mimetype: mimeType,
+              size: buffer.length,
+            },
+          })
+        } else {
+          // Cloudinary fallback when Vercel Blob storage adapter token is not set
+          const uploadResult = await uploadToCloudinary(
+            buffer,
+            file.name,
+            mimeType,
+            `codingclub/${folder}`
+          )
 
-        return {
+          mediaDoc = await payload.create({
+            collection: 'media',
+            overrideAccess: true,
+            data: {
+              alt: altText,
+              folder: folder,
+              filename: `${uploadResult.public_id.split('/').pop()}.${uploadResult.format || 'jpg'}`,
+              url: uploadResult.secure_url,
+              filesize: uploadResult.bytes || buffer.length,
+              width: uploadResult.width || null,
+              height: uploadResult.height || null,
+              mimeType: `image/${uploadResult.format || 'jpeg'}`,
+            },
+          })
+        }
+
+        createdDocs.push({
           id: mediaDoc.id,
           filename: mediaDoc.filename,
           url: mediaDoc.url,
           alt: mediaDoc.alt,
           width: mediaDoc.width,
           height: mediaDoc.height,
-        }
-      })
-    )
+        })
+      } catch (fileErr) {
+        console.error(`Failed to process upload for "${file.name}":`, fileErr)
+        failedFiles.push({
+          filename: file.name,
+          error: fileErr instanceof Error ? fileErr.message : 'Upload processing failed',
+        })
+      }
+    }
+
+    if (createdDocs.length === 0 && failedFiles.length > 0) {
+      return NextResponse.json(
+        { success: false, error: failedFiles[0].error, errors: failedFiles },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
       docs: createdDocs,
+      ...(failedFiles.length > 0 ? { errors: failedFiles } : {}),
     })
   } catch (error) {
     console.error('Batch upload error:', error)

@@ -5,6 +5,7 @@ import sharp from "sharp";
 
 import { buildConfig, PayloadRequest } from "payload";
 import { postgresAdapter } from "@payloadcms/db-postgres";
+import { vercelBlobStorage } from "@payloadcms/storage-vercel-blob";
 
 import { Media } from "./payload/collections/Media";
 import { Pages } from "./payload/collections/Pages";
@@ -75,7 +76,18 @@ const getPayloadSecret = (): string => {
   return secret;
 };
 
+const vercelBlobAdapter = vercelBlobStorage({
+  enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+  collections: {
+    media: true,
+  },
+  token: process.env.BLOB_READ_WRITE_TOKEN,
+  clientUploads: true,
+});
+
 export default buildConfig({
+  // @ts-expect-error - storage property alias for explicit storage adapter configuration
+  storage: vercelBlobAdapter,
   serverURL: getServerSideURL(),
   email: nodemailerEmailAdapter(),
   admin: {
@@ -198,7 +210,7 @@ export default buildConfig({
     process.env.NEXT_PUBLIC_SERVER_URL || "",
   ].filter(Boolean),
   globals: [Header, Footer, CertificateSettings, Students, ContactHub, Notices, SiteSettings],
-  plugins: [...plugins],
+  plugins: [vercelBlobAdapter, ...plugins],
   secret:
     getPayloadSecret(),
   sharp,

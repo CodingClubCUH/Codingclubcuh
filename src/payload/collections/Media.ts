@@ -10,7 +10,7 @@ import {
 
 import { anyone } from '../access/anyone'
 import { isAdmin } from '../access/isAdmin'
-import { CLOUDINARY_CLOUD_NAME, getCloudinaryTransformUrl, uploadToCloudinary } from '../utilities/cloudinary'
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET, getCloudinaryTransformUrl, uploadToCloudinary } from '../utilities/cloudinary'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -32,7 +32,17 @@ export const Media: CollectionConfig = {
   hooks: {
     beforeChange: [
       async ({ data, req }) => {
+        // If Vercel Blob storage adapter is configured, let it handle storage and URLs
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+          return data
+        }
+
         try {
+          // If Cloudinary credentials are not configured and Blob is not set, fallback to local storage
+          if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+            return data
+          }
+
           let fileBuffer: Buffer | null = null
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const reqAny = req as any
@@ -189,9 +199,9 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
-    // Media is persisted remotely to Cloudinary CDN
     staticDir: path.resolve(dirname, '../../public/media'),
-    disableLocalStorage: true,
+    // When deployed to Vercel or when Vercel Blob is configured, avoid storing on ephemeral disk
+    disableLocalStorage: Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL),
     adminThumbnail: ({ doc }) => {
       return (doc?.thumbnailURL || doc?.url || null) as string | null
     },

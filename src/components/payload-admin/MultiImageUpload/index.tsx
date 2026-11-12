@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useField } from '@payloadcms/ui';
+import { upload as vercelBlobUpload } from '@vercel/blob/client';
 import {
   Upload,
   Image as ImageIcon,
@@ -244,27 +245,88 @@ export const MultiImageUpload: React.FC<MultiImageUploadProps> = ({
       filename: `Uploading ${filesToUpload.length} ${filesToUpload.length === 1 ? 'image' : 'images'}...`,
     });
 
+    const newlyUploadedDocs: MediaItem[] = [];
+    const uploadErrors: string[] = [];
+
     try {
-      const formData = new FormData();
-      for (const file of filesToUpload) {
-        formData.append('files', file);
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const file = filesToUpload[i];
+        setUploadProgress({
+          current: i + 1,
+          total: filesToUpload.length,
+          filename: file.name,
+        });
+
+        try {
+          let uploadedItem: MediaItem | null = null;
+
+          // If file exceeds 4.5MB (within 10MB limit), use direct client upload to Vercel Blob
+          // to bypass Vercel serverless request body size limits
+          if (file.size > 4.5 * 1024 * 1024) {
+            try {
+              const blob = await vercelBlobUpload(file.name, file, {
+                access: 'public',
+                handleUploadUrl: '/api/vercel-blob-client-upload-route',
+                clientPayload: 'media',
+              });
+
+              const res = await fetch('/api/media/upload-batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  doc: {
+                    filename: file.name,
+                    url: blob.url,
+                    size: file.size,
+                    type: file.type,
+                  },
+                }),
+              });
+
+              const data = await res.json().catch(() => null);
+              if (res.ok && data?.success && data?.docs?.[0]) {
+                uploadedItem = data.docs[0];
+              }
+            } catch (blobErr) {
+              console.warn(`Direct blob client upload for ${file.name} failed or unavailable:`, blobErr);
+            }
+          }
+
+          // If not uploaded via client upload (or for files <= 4.5MB)
+          if (!uploadedItem) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch('/api/media/upload-batch', {
+              method: 'POST',
+              body: formData,
+            });
+
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.success || !data?.docs?.[0]) {
+              throw new Error(data?.error || `Upload failed with status ${res.status}`);
+            }
+            uploadedItem = data.docs[0];
+          }
+
+          if (uploadedItem) {
+            newlyUploadedDocs.push(uploadedItem);
+          }
+        } catch (fileErr: any) {
+          console.error(`Error uploading ${file.name}:`, fileErr);
+          uploadErrors.push(`${file.name}: ${fileErr.message || 'Upload error'}`);
+        }
       }
 
-      const res = await fetch('/api/media/upload-batch', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.error || `Upload failed with status ${res.status}`);
-      }
-
-      const newlyUploadedDocs: MediaItem[] = data.docs || [];
       if (newlyUploadedDocs.length > 0) {
         const combined = [...selectedDocs, ...newlyUploadedDocs];
         updateMediaSelection(combined);
+      }
+
+      if (uploadErrors.length > 0) {
+        setErrorMessage(
+          `Some files failed to upload (${uploadErrors.length} of ${filesToUpload.length}):\n${uploadErrors.join('; ')}`
+        );
       }
     } catch (err: any) {
       console.error('Batch upload error:', err);

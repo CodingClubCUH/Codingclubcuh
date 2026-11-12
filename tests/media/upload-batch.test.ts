@@ -334,4 +334,171 @@ describe('Media Batch Upload Security & Validation (/api/media/upload-batch)', (
       expect(data.docs[0].id).toBe(201)
     })
   })
+
+  describe('Vercel Blob Storage & Resilient Batch Uploads', () => {
+    beforeEach(() => {
+      mockGetAuthUser.mockResolvedValue({
+        user: { id: 1, name: 'Admin Alice', role: 'admin' },
+        isAdmin: true,
+      })
+    })
+
+    it('processes uploads via Payload storage adapter when BLOB_READ_WRITE_TOKEN is set', async () => {
+      const originalToken = process.env.BLOB_READ_WRITE_TOKEN
+      process.env.BLOB_READ_WRITE_TOKEN = 'vercel_blob_rw_teststore123_abc456'
+
+      mockPayloadCreate.mockResolvedValueOnce({
+        id: 301,
+        filename: 'blob_event.jpg',
+        url: 'https://teststore123.public.blob.vercel-storage.com/blob_event.jpg',
+        alt: 'blob event',
+        width: 1920,
+        height: 1080,
+      })
+
+      try {
+        const formData = new FormData()
+        formData.append('file', createMockFile('blob_event.jpg', 'image/jpeg', VALID_JPEG_HEADER))
+
+        const req = new Request('http://localhost:3001/api/media/upload-batch', {
+          method: 'POST',
+          body: formData,
+        })
+
+        const res = await POST(req)
+        expect(res.status).toBe(200)
+        const data = await res.json()
+        expect(data.success).toBe(true)
+        expect(data.docs[0].url).toContain('blob.vercel-storage.com')
+        expect(mockUploadToCloudinary).not.toHaveBeenCalled()
+        expect(mockPayloadCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            collection: 'media',
+            file: expect.objectContaining({
+              name: 'blob_event.jpg',
+              mimetype: 'image/jpeg',
+            }),
+          })
+        )
+      } finally {
+        if (originalToken !== undefined) {
+          process.env.BLOB_READ_WRITE_TOKEN = originalToken
+        } else {
+          delete process.env.BLOB_READ_WRITE_TOKEN
+        }
+      }
+    })
+
+    it('successfully uploads file larger than 4.5MB within the 10MB limit', async () => {
+      const originalToken = process.env.BLOB_READ_WRITE_TOKEN
+      process.env.BLOB_READ_WRITE_TOKEN = 'vercel_blob_rw_teststore123_abc456'
+
+      mockPayloadCreate.mockResolvedValueOnce({
+        id: 302,
+        filename: 'large_photo.jpg',
+        url: 'https://teststore123.public.blob.vercel-storage.com/large_photo.jpg',
+        alt: 'large photo',
+        width: 3840,
+        height: 2160,
+      })
+
+      try {
+        const size6MB = 6 * 1024 * 1024
+        const buffer6MB = new Uint8Array(size6MB)
+        buffer6MB.set(VALID_JPEG_HEADER, 0)
+        const largeFile = new File([buffer6MB], 'large_photo.jpg', { type: 'image/jpeg' })
+
+        const formData = new FormData()
+        formData.append('file', largeFile)
+
+        const req = new Request('http://localhost:3001/api/media/upload-batch', {
+          method: 'POST',
+          body: formData,
+        })
+
+        const res = await POST(req)
+        expect(res.status).toBe(200)
+        const data = await res.json()
+        expect(data.success).toBe(true)
+        expect(data.docs[0].id).toBe(302)
+      } finally {
+        if (originalToken !== undefined) {
+          process.env.BLOB_READ_WRITE_TOKEN = originalToken
+        } else {
+          delete process.env.BLOB_READ_WRITE_TOKEN
+        }
+      }
+    })
+
+    it('handles partial failures gracefully without failing the entire batch', async () => {
+      const originalToken = process.env.BLOB_READ_WRITE_TOKEN
+      process.env.BLOB_READ_WRITE_TOKEN = 'vercel_blob_rw_teststore123_abc456'
+
+      mockPayloadCreate.mockResolvedValueOnce({
+        id: 303,
+        filename: 'good_photo.jpg',
+        url: 'https://teststore123.public.blob.vercel-storage.com/good_photo.jpg',
+        alt: 'good photo',
+      })
+      mockPayloadCreate.mockRejectedValueOnce(new Error('Storage timeout'))
+
+      try {
+        const formData = new FormData()
+        formData.append('files', createMockFile('good_photo.jpg', 'image/jpeg', VALID_JPEG_HEADER))
+        formData.append('files', createMockFile('bad_photo.png', 'image/png', VALID_PNG_HEADER))
+
+        const req = new Request('http://localhost:3001/api/media/upload-batch', {
+          method: 'POST',
+          body: formData,
+        })
+
+        const res = await POST(req)
+        expect(res.status).toBe(200)
+        const data = await res.json()
+        expect(data.success).toBe(true)
+        expect(data.docs).toHaveLength(1)
+        expect(data.docs[0].id).toBe(303)
+        expect(data.errors).toHaveLength(1)
+        expect(data.errors[0].filename).toBe('bad_photo.png')
+        expect(data.errors[0].error).toContain('Storage timeout')
+      } finally {
+        if (originalToken !== undefined) {
+          process.env.BLOB_READ_WRITE_TOKEN = originalToken
+        } else {
+          delete process.env.BLOB_READ_WRITE_TOKEN
+        }
+      }
+    })
+
+    it('supports direct client-uploaded blob registration via JSON payload', async () => {
+      mockPayloadCreate.mockResolvedValueOnce({
+        id: 304,
+        filename: 'direct_client_upload.jpg',
+        url: 'https://teststore123.public.blob.vercel-storage.com/direct_client_upload.jpg',
+        alt: 'direct client upload',
+        width: 1200,
+        height: 800,
+      })
+
+      const req = new Request('http://localhost:3001/api/media/upload-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          doc: {
+            filename: 'direct_client_upload.jpg',
+            url: 'https://teststore123.public.blob.vercel-storage.com/direct_client_upload.jpg',
+            size: 5555,
+            type: 'image/jpeg',
+          },
+        }),
+      })
+
+      const res = await POST(req)
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.success).toBe(true)
+      expect(data.docs[0].id).toBe(304)
+      expect(data.docs[0].url).toContain('blob.vercel-storage.com')
+    })
+  })
 })
