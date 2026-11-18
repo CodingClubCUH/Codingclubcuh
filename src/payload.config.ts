@@ -76,8 +76,16 @@ const getPayloadSecret = (): string => {
   return secret;
 };
 
+const isBlobConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+
+if (process.env.NODE_ENV === "production" && !isBlobConfigured) {
+  console.warn(
+    "[Payload Config] Warning: BLOB_READ_WRITE_TOKEN is not configured in production environment. Vercel Blob adapter will be disabled."
+  );
+}
+
 const vercelBlobAdapter = vercelBlobStorage({
-  enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+  enabled: isBlobConfigured,
   collections: {
     media: true,
   },
@@ -86,8 +94,6 @@ const vercelBlobAdapter = vercelBlobStorage({
 });
 
 export default buildConfig({
-  // @ts-expect-error - storage property alias for explicit storage adapter configuration
-  storage: vercelBlobAdapter,
   serverURL: getServerSideURL(),
   email: nodemailerEmailAdapter(),
   admin: {
