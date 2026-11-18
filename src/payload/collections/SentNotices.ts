@@ -4,6 +4,7 @@ import { isAdmin } from '../access/isAdmin'
 export const SentNotices: CollectionConfig = {
   slug: 'sent-notices',
   admin: {
+    hidden: true,
     useAsTitle: 'subject',
     defaultColumns: ['subject', 'category', 'recipientsCount', 'status', 'sentAt'],
     group: 'Club Core',

@@ -5,6 +5,7 @@ import { isAdmin } from '../access/isAdmin'
 export const ContactMessages: CollectionConfig = {
   slug: 'contact-messages',
   admin: {
+    hidden: true,
     useAsTitle: 'subject',
     defaultColumns: ['name', 'email', 'subject', 'status', 'createdAt'],
     group: 'Club Core',
